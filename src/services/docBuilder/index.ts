@@ -10,7 +10,7 @@ import {
 } from 'docx';
 import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN } from './styles';
 import { mermaidToImageBuffer } from '../../utils/mermaid';
-import type { ChapterKey, DatabaseTable } from '../../store/types';
+import type { ChapterKey, CSharpClass, DatabaseTable } from '../../store/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -29,6 +29,7 @@ export interface BuildDocumentInput {
     userType: 'admin' | 'regular' | 'both';
   }>;
   tables?: DatabaseTable[];
+  classes?: CSharpClass[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -391,6 +392,90 @@ async function buildDiagramsSection(
   return paragraphs;
 }
 
+// ─── C# Classes section ─────────────────────────────────────────────────
+
+function codeLineParagraph(text: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.LEFT,
+    children: [
+      new TextRun({
+        text,
+        font: 'Courier New',
+        size: 18, // 9pt in half-points
+        rightToLeft: false,
+      }),
+    ],
+  });
+}
+
+function classBlock(cls: CSharpClass): Paragraph[] {
+  const paras: Paragraph[] = [];
+
+  // H2 heading: ClassName + abstract/interface badge
+  const badges = [cls.isAbstract ? 'abstract' : '', cls.isInterface ? 'interface' : '']
+    .filter(Boolean)
+    .join(', ');
+  const headingText = badges ? `${cls.name} (${badges})` : cls.name;
+  paras.push(chapterHeading(headingText, 2));
+
+  // Namespace
+  if (cls.namespace) {
+    paras.push(rtlParagraph(`מרחב שמות: ${cls.namespace}`));
+  }
+
+  // Base class / interfaces
+  const bases = [cls.baseClass ?? '', ...cls.interfaces].filter(Boolean);
+  if (bases.length > 0) {
+    paras.push(rtlParagraph(`יורשת מ: ${bases.join(', ')}`));
+  }
+
+  // Class description from xmlDocComment or placeholder
+  const classDesc = cls.xmlDocComment?.trim() || 'מחלקה זו מהווה חלק ממערכת הפרויקט';
+  paras.push(rtlParagraph(classDesc));
+
+  // Properties & fields as code lines
+  const members = [
+    ...cls.fields.map((f) => `${f.accessModifier} ${f.type} ${f.name}`),
+    ...cls.properties.map((p) => `${p.accessModifier} ${p.type} ${p.name} { get; set; }`),
+  ];
+  if (members.length > 0) {
+    paras.push(chapterHeading('שדות ומאפיינים', 2));
+    members.forEach((line) => paras.push(codeLineParagraph(line)));
+  }
+
+  // Methods — key methods first, then the rest
+  if (cls.methods.length > 0) {
+    paras.push(chapterHeading('פעולות', 2));
+    const sorted = [
+      ...cls.methods.filter((m) => m.isKeySnippet),
+      ...cls.methods.filter((m) => !m.isKeySnippet),
+    ];
+    for (const method of sorted) {
+      const prefix = method.isKeySnippet ? '★ ' : '';
+      const sig = `${prefix}${method.accessModifier} ${method.returnType} ${method.name}(${method.parameters.join(', ')})`;
+      paras.push(codeLineParagraph(sig));
+      const explanation = method.xmlDocComment?.trim() || `פעולה זו מבצעת ${method.name}`;
+      paras.push(rtlParagraph(explanation));
+      if (method.isExplainInAppendix) {
+        paras.push(rtlParagraph('(מוסבר בנספח)'));
+      }
+    }
+  }
+
+  return paras;
+}
+
+function buildCSharpSection(classes: CSharpClass[]): Paragraph[] {
+  const visible = classes.filter((c) => !c.isExcluded);
+  if (visible.length === 0) return [];
+
+  return [
+    pageBreak(),
+    chapterHeading('מבנה המחלקות (C#)'),
+    ...visible.flatMap((cls) => classBlock(cls)),
+  ];
+}
+
 // ─── Public API: build & download ────────────────────────────────────────
 
 export async function buildAndDownloadDocument(input: BuildDocumentInput): Promise<void> {
@@ -443,6 +528,9 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
           input.diagrams.erd.status,
         ),
       );
+    } else if (key === 'serverImplementation') {
+      allBodySections.push(...buildChapterSection(key, content, status));
+      allBodySections.push(...buildCSharpSection(input.classes ?? []));
     } else if (key === 'userGuide') {
       allBodySections.push(...buildUserGuideWithScreenshots(content, status, input.screenshotFiles));
     } else {

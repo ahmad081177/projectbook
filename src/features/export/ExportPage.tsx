@@ -40,6 +40,7 @@ export default function ExportPage() {
   const language = useAppStore((s) => s.language);
   const screenshots = useAppStore((s) => s.screenshots);
   const dbSchema = useAppStore((s) => s.dbSchema);
+  const classes = useAppStore((s) => s.classes);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -69,6 +70,7 @@ export default function ExportPage() {
         diagrams,
         screenshotFiles,
         tables: dbSchema?.tables ?? [],
+        classes,
       });
       setDownloaded(true);
       useAppStore.setState({ exportStatus: 'done', lastExportDate: new Date().toISOString() });
