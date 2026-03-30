@@ -75,7 +75,10 @@ export default function GenerationPage() {
   const store = useAppStore.getState();
   const [tasks, setTasks] = useState<GenerationTask[]>(buildTasks);
   const [hasAllFailed, setHasAllFailed] = useState(false);
+  const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
+  const [isDone, setIsDone] = useState(false);
   const started = useRef(false);
+  const abortRef = useRef(false);
 
   const completedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'failed').length;
   const progress = Math.round((completedCount / tasks.length) * 100);
@@ -113,9 +116,12 @@ export default function GenerationPage() {
       await new Promise((r) => setTimeout(r, 300));
       updateTask('read-db', 'complete');
 
-      // Step 2: Generate each chapter sequentially
+      // Step 2: Generate each chapter sequentially with a 1-second gap
+      // to stay under Gemini free-tier rate limit (~15 RPM).
       let failedCount = 0;
+      const localFailedKeys: ChapterKey[] = [];
       for (const key of CHAPTER_ORDER) {
+        if (abortRef.current) break;
         updateTask(key, 'generating');
         useAppStore.setState((s) => ({
           generatedContent: {
@@ -135,6 +141,7 @@ export default function GenerationPage() {
           updateTask(key, 'complete');
         } catch {
           failedCount++;
+          localFailedKeys.push(key);
           useAppStore.setState((s) => ({
             generatedContent: {
               ...s.generatedContent,
@@ -143,6 +150,9 @@ export default function GenerationPage() {
           }));
           updateTask(key, 'failed');
         }
+
+        // 1-second breathing room between calls
+        if (!abortRef.current) await new Promise((r) => setTimeout(r, 1000));
       }
 
       // Step 3: Generate diagrams
@@ -176,10 +186,14 @@ export default function GenerationPage() {
 
       // Complete
       setHasAllFailed(failedCount === CHAPTER_ORDER.length);
+      setFailedKeys(localFailedKeys);
+      setIsDone(true);
       useAppStore.setState({ isGenerating: false, completedStep: 5 });
 
-      // Auto-advance to review
-      setTimeout(() => void navigate('/review/introduction'), 800);
+      // Auto-advance to review only when everything succeeded
+      if (failedCount === 0) {
+        setTimeout(() => void navigate('/review/introduction'), 800);
+      }
     };
 
     useAppStore.setState({ isGenerating: true });
@@ -187,9 +201,68 @@ export default function GenerationPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Retry only the chapters that failed (re-uses the same ctx)
+  const retryFailed = async () => {
+    if (failedKeys.length === 0) return;
+    const store2 = useAppStore.getState();
+    const ctx: GenerationContext = {
+      apiKey: store2.geminiApiKey,
+      model: store2.geminiModel,
+      language: store2.language,
+      studentName: store2.studentName,
+      projectType: store2.projectType,
+      classes: store2.classes,
+      tables: store2.dbSchema?.tables ?? [],
+      screenshots: store2.screenshots.map((s) => ({
+        screenName: s.screenName,
+        caption: s.caption,
+        userType: s.userType,
+      })),
+    };
+    const stillFailed: ChapterKey[] = [];
+    for (const key of failedKeys) {
+      updateTask(key, 'generating');
+      useAppStore.setState((s) => ({
+        generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'generating' } },
+      }));
+      try {
+        const content = await generateChapter(key, ctx);
+        useAppStore.setState((s) => ({
+          generatedContent: { ...s.generatedContent, [key]: { content, status: 'complete', lastGenerated: new Date().toISOString() } },
+        }));
+        updateTask(key, 'complete');
+      } catch {
+        stillFailed.push(key);
+        useAppStore.setState((s) => ({
+          generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'failed' } },
+        }));
+        updateTask(key, 'failed');
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    setFailedKeys(stillFailed);
+    if (stillFailed.length === 0) {
+      setTimeout(() => void navigate('/review/introduction'), 500);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-8">
       <div className="w-full max-w-2xl flex flex-col gap-6">
+        {/* Title */}
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-800">
+            {isDone ? '✅ יצירת הספר הושלמה' : '⚙️ מייצר את הספר...'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {isDone
+              ? failedKeys.length > 0
+                ? `${failedKeys.length} פרקים נכשלו — לחץ "נסה שוב" לנסות מחדש`
+                : 'עובר לסקירה...'
+              : 'אנא המתן, הפעולה עשויה לקחת מספר דקות'}
+          </p>
+        </div>
+
         <ProgressBar value={progress} />
 
         {hasAllFailed && (
@@ -218,6 +291,28 @@ export default function GenerationPage() {
             </li>
           ))}
         </ul>
+
+        {/* Action buttons shown once generation is done */}
+        {isDone && (
+          <div className="flex gap-3 pt-2">
+            {failedKeys.length > 0 && (
+              <button
+                type="button"
+                onClick={() => void retryFailed()}
+                className="flex-1 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium py-2 hover:bg-amber-100 transition-colors"
+              >
+                🔄 נסה שוב ({failedKeys.length} פרקים)
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void navigate('/review/introduction')}
+              className="flex-1 rounded-lg bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
+            >
+              עבור לסקירה →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

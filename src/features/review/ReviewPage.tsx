@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import Badge from '../../components/ui/Badge';
 import type { BadgeStatus } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import Spinner from '../../components/ui/Spinner';
 import { useTranslation } from '../../i18n';
+import { generateChapter, type GenerationContext } from '../../services/gemini';
 import { useAppStore } from '../../store';
 import type { ChapterKey } from '../../store/types';
 
@@ -51,6 +54,7 @@ export default function ReviewPage() {
 
   const generatedContent = useAppStore((s) => s.generatedContent);
   const language = useAppStore((s) => s.language);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const activeKey: ChapterKey = CHAPTER_ORDER.includes(chapterKey as ChapterKey)
     ? (chapterKey as ChapterKey)
@@ -60,6 +64,40 @@ export default function ReviewPage() {
 
   const handleDownload = () => {
     void navigate('/export');
+  };
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    const s = useAppStore.getState();
+    const ctx: GenerationContext = {
+      apiKey: s.geminiApiKey,
+      model: s.geminiModel,
+      language: s.language,
+      studentName: s.studentName,
+      projectType: s.projectType,
+      classes: s.classes,
+      tables: s.dbSchema?.tables ?? [],
+      screenshots: s.screenshots.map((sc) => ({
+        screenName: sc.screenName,
+        caption: sc.caption,
+        userType: sc.userType,
+      })),
+    };
+    useAppStore.setState((prev) => ({
+      generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'generating' } },
+    }));
+    try {
+      const content = await generateChapter(activeKey, ctx);
+      useAppStore.setState((prev) => ({
+        generatedContent: { ...prev.generatedContent, [activeKey]: { content, status: 'complete', lastGenerated: new Date().toISOString() } },
+      }));
+    } catch {
+      useAppStore.setState((prev) => ({
+        generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'failed' } },
+      }));
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   return (
@@ -106,11 +144,27 @@ export default function ReviewPage() {
 
         {/* Main content */}
         <main className="flex-1 p-6 overflow-y-auto">
+          {/* Regenerate button for failed/empty chapters */}
+          {(activeChapter.status === 'failed' || (activeChapter.status === 'complete' && !activeChapter.content)) && (
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleRegenerate()}
+                disabled={isRegenerating}
+                className="flex items-center gap-2 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium px-4 py-2 hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                {isRegenerating ? <Spinner size="sm" /> : '🔄'}
+                {isRegenerating ? 'מייצר...' : 'צור פרק מחדש'}
+              </button>
+            </div>
+          )}
           <div
             dir={language === 'he' || language === 'ar' ? 'rtl' : 'ltr'}
             className="prose prose-sm max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed"
           >
-            {activeChapter.status === 'failed' ? (
+            {isRegenerating ? (
+              <p className="text-blue-600 italic">מייצר תוכן...</p>
+            ) : activeChapter.status === 'failed' ? (
               <p className="text-amber-600 italic">
                 פרק זה נכשל במהלך היצירה. ניתן לערוך בWord לאחר הורדה.
               </p>

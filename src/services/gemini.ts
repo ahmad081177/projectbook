@@ -24,6 +24,11 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
+// Retry with exponential backoff on 429 (rate-limit) responses.
+// Free-tier Gemini allows ~15 RPM; 13 chapters + 2 diagrams can hit the limit.
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 15_000; // 15 s — Gemini free-tier resets per minute
+
 async function callGemini(
   apiKey: string,
   model: GeminiModel,
@@ -33,27 +38,38 @@ async function callGemini(
   assertAllowedModel(model);
   const url = `${GEMINI_API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      generationConfig: { temperature: 0.4, topP: 0.85, maxOutputTokens: 8192 },
-    }),
-  });
+  let lastError = '';
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { temperature: 0.4, topP: 0.85, maxOutputTokens: 8192 },
+      }),
+    });
 
-  if (!res.ok) {
+    if (res.ok) {
+      const body = (await res.json()) as GeminiResponse;
+      return body.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    }
+
     let errMsg = `HTTP ${res.status}`;
     try {
       const body = (await res.json()) as GeminiResponse;
       if (body.error?.message) errMsg = body.error.message;
     } catch { /* ignore */ }
-    throw new Error(errMsg);
+    lastError = errMsg;
+
+    // Only retry on rate-limit (429); fail fast on other errors
+    if (res.status !== 429 || attempt === MAX_RETRIES) break;
+
+    const delay = RETRY_BASE_DELAY_MS * (attempt + 1);
+    await new Promise((r) => setTimeout(r, delay));
   }
 
-  const body = (await res.json()) as GeminiResponse;
-  return body.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  throw new Error(lastError);
 }
 
 // ─── System prompt builder ─────────────────────────────────────────────────
