@@ -28,7 +28,7 @@ export default function LanguageSelectionPage() {
       {/* Branding */}
       <div className="text-center flex flex-col items-center gap-3">
         <span className="text-6xl" aria-hidden="true">📚</span>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">AutoProjectBook</h1>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">AI Project Book</h1>
         <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
           כלי אוטומטי ליצירת ספר הפרוייקט / أداة إنشاء كتاب المشروع تلقائيًا
         </p>

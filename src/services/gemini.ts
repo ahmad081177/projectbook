@@ -168,8 +168,10 @@ async function callAI(
 // ─── System prompt builder ─────────────────────────────────────────────────
 
 function buildSystemPrompt(language: Language): string {
-  const langName = language === 'he' ? 'עברית' : 'عربية';
-  return `אתה עוזר כתיבה מקצועי המסייע לתלמידי תיכון בישראל לכתוב את ספר הפרויקט שלהם בהנדסת תוכנה בשפה ${langName} פורמלית. כתוב אקדמית בגוף שלישי בזמן הווה. אל תשתמש במילים באנגלית אלא אם כן הן מונחים טכניים. פרמט את הפלט כפסקאות רגילות, ללא markdown.`;
+  if (language === 'ar') {
+    return `أنت مساعد كتابة محترف يساعد طلاب المدارس الثانوية في إسرائيل على كتابة كتاب مشروع هندسة البرمجيات باللغة العربية الفصحى الرسمية. اكتب بأسلوب أكاديمي بصيغة الغائب في زمن المضارع. لا تستخدم الكلمات الإنجليزية إلا إذا كانت مصطلحات تقنية. نسّق الإخراج باستخدام عناوين (## للقسم، ### للقسم الفرعي)، وقوائم نقطية (- للعنصر)، و**تمييز غامق** للمصطلحات المهمة.`;
+  }
+  return `אתה עוזר כתיבה מקצועי המסייע לתלמידי תיכון בישראל לכתוב את ספר הפרויקט שלהם בהנדסת תוכנה בעברית פורמלית. כתוב אקדמית בגוף שלישי בזמן הווה. אל תשתמש במילים באנגלית אלא אם כן הן מונחים טכניים. פרמט את הפלט עם כותרות (## לסעיף, ### לתת-סעיף), רשימות תבליטים (- לפריט), ו-**הדגשה** למונחים חשובים.`;
 }
 
 // ─── Context builders ──────────────────────────────────────────────────────
@@ -403,6 +405,76 @@ export async function generateUmlDiagram(ctx: GenerationContext): Promise<string
 ${classesToContext(ctx.classes)}
 צור קוד Mermaid תקני לדיאגרמת מחלקות (classDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+}
+
+// ─── Class descriptions (issue: remove hardcoded fallback) ────────────────
+
+/**
+ * Parses a structured AI response into a map of class/method descriptions.
+ * Format the AI is asked to respond in:
+ *   CLASS ClassName: <description>
+ *   METHOD ClassName.methodName: <description>
+ */
+export function parseClassDescriptions(
+  response: string,
+): Record<string, { classDesc: string; methods: Record<string, string> }> {
+  const result: Record<string, { classDesc: string; methods: Record<string, string> }> = {};
+  for (const raw of response.split('\n')) {
+    const line = raw.trim();
+    const classMatch = line.match(/^CLASS\s+(\w+)\s*:\s*(.+)/);
+    if (classMatch) {
+      const [, name, desc] = classMatch;
+      if (!result[name]) result[name] = { classDesc: '', methods: {} };
+      result[name].classDesc = desc.trim();
+      continue;
+    }
+    const methodMatch = line.match(/^METHOD\s+(\w+)\.(\w+)\s*:\s*(.+)/);
+    if (methodMatch) {
+      const [, className, methodName, desc] = methodMatch;
+      if (!result[className]) result[className] = { classDesc: '', methods: {} };
+      result[className].methods[methodName] = desc.trim();
+    }
+  }
+  return result;
+}
+
+/**
+ * Calls the AI once to generate brief descriptions for all non-excluded classes
+ * and their methods. Returns a map keyed by class name.
+ * Silently returns {} on any failure.
+ */
+export async function generateClassDescriptions(
+  ctx: GenerationContext,
+): Promise<Record<string, { classDesc: string; methods: Record<string, string> }>> {
+  const active = ctx.classes.filter((c) => !c.isExcluded);
+  if (active.length === 0) return {};
+
+  const systemPrompt = buildSystemPrompt(ctx.language);
+
+  const classList = active.map((c) => {
+    const methods = c.methods.map((m) => m.name).join(', ');
+    return `${c.name}${methods ? ': ' + methods : ''}`;
+  }).join('\n');
+
+  const langInstruction = ctx.language === 'ar'
+    ? 'اكتب الأوصاف باللغة العربية. جملة واحدة لكل فصل أو طريقة.'
+    : 'כתוב את התיאורים בעברית. משפט אחד לכל מחלקה ושיטה.';
+
+  const userPrompt = `${langInstruction}
+
+רשימת מחלקות ושיטות:
+${classList}
+
+עבור כל מחלקה ושיטה, כתוב תיאור קצר בפורמט הבא (שורה אחת לכל פריט):
+CLASS ClassName: <תיאור>
+METHOD ClassName.methodName: <תיאור>`;
+
+  try {
+    const response = await callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+    return parseClassDescriptions(response);
+  } catch {
+    return {};
+  }
 }
 
 export async function generateErdDiagram(ctx: GenerationContext): Promise<string> {

@@ -7,6 +7,7 @@ import ProgressBar from '../../components/ui/ProgressBar';
 import { useTranslation } from '../../i18n';
 import {
   generateChapter,
+  generateClassDescriptions,
   generateErdDiagram,
   type GenerationContext,
 } from '../../services/gemini';
@@ -222,6 +223,29 @@ export default function GenerationPage() {
 
         // 1-second breathing room between calls
         if (!abortRef.current) await new Promise((r) => setTimeout(r, 1000));
+      }
+
+      // Step 2.5: Silently enrich class descriptions (no visible task)
+      if (!abortRef.current && sel.has('serverImplementation') && ctx.classes.some((c) => !c.isExcluded)) {
+        try {
+          const descriptions = await generateClassDescriptions(ctx);
+          if (Object.keys(descriptions).length > 0) {
+            useAppStore.setState((s) => ({
+              classes: s.classes.map((cls) => {
+                const desc = descriptions[cls.name];
+                if (!desc) return cls;
+                return {
+                  ...cls,
+                  xmlDocComment: cls.xmlDocComment?.trim() || desc.classDesc || cls.xmlDocComment,
+                  methods: cls.methods.map((m) => ({
+                    ...m,
+                    xmlDocComment: m.xmlDocComment?.trim() || desc.methods[m.name] || m.xmlDocComment,
+                  })),
+                };
+              }),
+            }));
+          }
+        } catch { /* silently skip on failure */ }
       }
 
       // Step 3: Generate diagrams (only if selected)

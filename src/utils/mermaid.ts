@@ -42,7 +42,14 @@ export async function mermaidToImageBuffer(code: string, options?: { width?: num
   if (!ctx) throw new Error('Canvas 2D context unavailable');
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.drawImage(img, 0, 0, WIDTH, HEIGHT);
+
+  // Preserve aspect ratio — scale to fit, center on white canvas
+  const scale = Math.min(WIDTH / (img.naturalWidth || WIDTH), HEIGHT / (img.naturalHeight || HEIGHT));
+  const scaledW = (img.naturalWidth || WIDTH) * scale;
+  const scaledH = (img.naturalHeight || HEIGHT) * scale;
+  const offsetX = (WIDTH - scaledW) / 2;
+  const offsetY = (HEIGHT - scaledH) / 2;
+  ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
 
   // Convert to PNG ArrayBuffer
   const blob = await new Promise<Blob>((resolve, reject) => {

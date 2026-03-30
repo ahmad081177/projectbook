@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildProjectSummary, tablesToContext } from './gemini';
+import { buildProjectSummary, tablesToContext, parseClassDescriptions } from './gemini';
 import type { GenerationContext } from './gemini';
 import type { CSharpClass, DatabaseTable } from '../store/types';
 
@@ -242,5 +242,56 @@ describe('tablesToContext', () => {
 
   it('returns empty string for empty table list', () => {
     expect(tablesToContext([])).toBe('');
+  });
+});
+
+// ── parseClassDescriptions ────────────────────────────────────────────────────
+
+describe('parseClassDescriptions', () => {
+  it('parses CLASS lines into classDesc', () => {
+    const input = 'CLASS UserService: Manages user authentication and profile data.';
+    const result = parseClassDescriptions(input);
+    expect(result['UserService']?.classDesc).toBe('Manages user authentication and profile data.');
+  });
+
+  it('parses METHOD lines into methods map', () => {
+    const input = 'METHOD UserService.Login: Validates credentials and returns a JWT token.';
+    const result = parseClassDescriptions(input);
+    expect(result['UserService']?.methods['Login']).toBe('Validates credentials and returns a JWT token.');
+  });
+
+  it('parses a multi-line response with CLASS and METHOD entries', () => {
+    const input = [
+      'CLASS OrderController: Handles HTTP requests for order management.',
+      'METHOD OrderController.GetAll: Returns all orders for the current user.',
+      'METHOD OrderController.Create: Creates a new order and persists it.',
+    ].join('\n');
+    const result = parseClassDescriptions(input);
+    expect(result['OrderController']?.classDesc).toBe('Handles HTTP requests for order management.');
+    expect(result['OrderController']?.methods['GetAll']).toBe('Returns all orders for the current user.');
+    expect(result['OrderController']?.methods['Create']).toBe('Creates a new order and persists it.');
+  });
+
+  it('ignores unrecognised lines', () => {
+    const input = 'Some preamble text\nCLASS Foo: A foo.\nUnrelated line';
+    const result = parseClassDescriptions(input);
+    expect(Object.keys(result)).toHaveLength(1);
+    expect(result['Foo']?.classDesc).toBe('A foo.');
+  });
+
+  it('returns empty object for empty input', () => {
+    expect(parseClassDescriptions('')).toEqual({});
+  });
+
+  it('handles multiple classes without duplicating entries', () => {
+    const input = [
+      'CLASS Alpha: First class.',
+      'CLASS Beta: Second class.',
+      'METHOD Alpha.Init: Initialises the instance.',
+    ].join('\n');
+    const result = parseClassDescriptions(input);
+    expect(Object.keys(result)).toHaveLength(2);
+    expect(result['Beta']?.classDesc).toBe('Second class.');
+    expect(result['Alpha']?.methods['Init']).toBe('Initialises the instance.');
   });
 });
