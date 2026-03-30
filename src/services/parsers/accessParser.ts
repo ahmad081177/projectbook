@@ -91,7 +91,11 @@ export function extractTableNames(buffer: ArrayBuffer): string[] {
 
   // Table names repeat throughout the file; single-occurrence strings are
   // almost always field names, enum values, or query fragments.
-  const MIN_FREQ = 5;
+  // NOTE: MIN_FREQ kept at 3 — the regex guards above already reject the
+  // common false positives (column names ending in Id/At/On, IsXxx, HasXxx,
+  // repeated-char artifacts). Raising this higher silences real tables in
+  // small ACCDB files where names only appear 3–4 times.
+  const MIN_FREQ = 3;
   return [...freq.entries()]
     .filter(([, count]) => count >= MIN_FREQ)
     .sort((a, b) => b[1] - a[1])      // most-frequent first (likely real tables)
