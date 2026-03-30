@@ -2,7 +2,7 @@
 
 **Epic:** 8 — Document Export
 **Story ID:** 8-3
-**Status:** ready-for-dev
+**Status:** review
 **Date:** 2026-03-30
 **Project:** AutoProjectBook (Sefer-Proyekt-Wizard)
 

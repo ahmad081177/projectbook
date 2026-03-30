@@ -2,7 +2,7 @@
 
 **Epic:** 6 — Diagram Generation
 **Story ID:** 6-2
-**Status:** ready-for-dev
+**Status:** review
 **Date:** 2026-03-30
 **Project:** AutoProjectBook (Sefer-Proyekt-Wizard)
 
