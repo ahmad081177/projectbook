@@ -18,6 +18,7 @@ export const LTR_PARA: Partial<IParagraphOptions> = {
 export const HEBREW_RUN: Partial<IRunOptions> = {
   font: 'David MT',
   size: 24, // 12pt in half-points
+  rightToLeft: true,
 };
 
 export const CODE_RUN: Partial<IRunOptions> = {
