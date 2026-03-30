@@ -125,8 +125,6 @@ async function callAzureOpenAI(
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.4,
-        top_p: 0.85,
         max_completion_tokens: 8192,
       }),
     });
