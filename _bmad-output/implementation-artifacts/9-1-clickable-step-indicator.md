@@ -2,7 +2,7 @@
 
 **Epic:** 9 — Navigation & UX Polish
 **Story ID:** 9-1
-**Status:** ready-for-dev
+**Status:** review
 **Date:** 2026-03-30
 **Project:** AutoProjectBook (Sefer-Proyekt-Wizard)
 
@@ -38,25 +38,25 @@ so that I can quickly revisit an earlier step (e.g., re-upload code, change DB, 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1 — Add i18n key for back-navigation aria-label (AC: 7)
-  - [ ] 1.1: Add `"step.goBack": "לחץ לחזרה"` to `src/i18n/he.json`
-  - [ ] 1.2: Add `"step.goBack": "انقر للرجوع"` to `src/i18n/ar.json`
+- [x] Task 1 — Add i18n key for back-navigation aria-label (AC: 7)
+  - [x] 1.1: Add `"step.goBack": "לחץ לחזרה"` to `src/i18n/he.json`
+  - [x] 1.2: Add `"step.goBack": "انقر للرجوع"` to `src/i18n/ar.json`
 
-- [ ] Task 2 — Add step-to-route mapping in `StepIndicator` (AC: 2)
-  - [ ] 2.1: Add a `STEP_ROUTES` constant array (index-aligned with steps) mapping each step index to its entry path string
+- [x] Task 2 — Add step-to-route mapping in `StepIndicator` (AC: 2)
+  - [x] 2.1: Add a `STEP_ROUTES` constant array (index-aligned with steps) mapping each step index to its entry path string
 
-- [ ] Task 3 — Make completed steps clickable (AC: 1, 2, 3, 4, 5, 6, 7)
-  - [ ] 3.1: Add `const navigate = useNavigate()` and `const isGenerating = useAppStore((s) => s.isGenerating)` inside `StepIndicator`
-  - [ ] 3.2: For each step, wrap the circle `<div>` in a `<button>` when `state === 'complete' && !isGenerating`; keep as `<div>` otherwise
-  - [ ] 3.3: Add hover ring + `cursor-pointer` class to completed clickable circles; add `cursor-not-allowed opacity-60` to ALL circles when `isGenerating`
-  - [ ] 3.4: Button `onClick` calls `navigate(STEP_ROUTES[index])`
+- [x] Task 3 — Make completed steps clickable (AC: 1, 2, 3, 4, 5, 6, 7)
+  - [x] 3.1: Add `const navigate = useNavigate()` and `const isGenerating = useAppStore((s) => s.isGenerating)` inside `StepIndicator`
+  - [x] 3.2: For each step, wrap the circle `<div>` in a `<button>` when `state === 'complete' && !isGenerating`; keep as `<div>` otherwise
+  - [x] 3.3: Add hover ring + `cursor-pointer` class to completed clickable circles; add `cursor-not-allowed opacity-60` to ALL circles when `isGenerating`
+  - [x] 3.4: Button `onClick` calls `navigate(STEP_ROUTES[index])`
 
-- [ ] Task 4 — Update existing StepIndicator tests if needed (AC: 8)
-  - [ ] 4.1: Run tests; fix any assertion that hard-codes `div` role for completed steps
+- [x] Task 4 — Update existing StepIndicator tests if needed (AC: 8)
+  - [x] 4.1: Run tests; fix any assertion that hard-codes `div` role for completed steps
 
-- [ ] Task 5 — Verify regression (AC: 8)
-  - [ ] 5.1: `npm run typecheck` — clean
-  - [ ] 5.2: `npm test -- --run` — 68/68
+- [x] Task 5 — Verify regression (AC: 8)
+  - [x] 5.1: `npm run typecheck` — clean
+  - [x] 5.2: `npm test -- --run` — 68/68 ✅
 
 ---
 
