@@ -191,16 +191,16 @@ export function buildProjectSummary(ctx: GenerationContext): string {
 }
 
 const CHAPTER_WORD_COUNTS: Record<ChapterKey, number> = {
-  introduction: 400,
-  techStack: 300,
-  systemAnalysis: 600,
+  introduction: 250,
+  techStack: 180,
+  systemAnalysis: 350,
   database: 500,
   serverImplementation: 700,
   clientImplementation: 600,
   userGuide: 400,
-  reflection: 300,
-  difficulties: 350,
-  whatNext: 300,
+  reflection: 200,
+  difficulties: 250,
+  whatNext: 200,
   appendices: 200,
 };
 

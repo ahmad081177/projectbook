@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import WizardHeader from '../../components/layout/WizardHeader';
 import Badge from '../../components/ui/Badge';
 import type { BadgeStatus } from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -102,6 +103,7 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <WizardHeader />
       <div className="flex-1 flex flex-col sm:flex-row max-w-5xl w-full mx-auto">
         {/* Sidebar: chapter list */}
         <aside className="w-full sm:w-56 bg-white border-b sm:border-b-0 sm:border-e border-gray-200 p-4 flex flex-col gap-1">
@@ -180,11 +182,9 @@ export default function ReviewPage() {
       {/* Bottom action bar */}
       <footer className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          <p className="text-xs text-gray-500">
-            {t('warning.desktop.only').includes('Word')
-              ? 'פתח ב-Microsoft Word לאחר ההורדה לעריכה נוספת'
-              : ''}
-          </p>
+          <Button variant="secondary" onClick={() => void navigate('/generate')}>
+            ← חזרה ליצירה
+          </Button>
           <Button onClick={handleDownload}>{t('download.button')}</Button>
         </div>
       </footer>

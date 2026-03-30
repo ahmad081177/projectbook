@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import WizardHeader from '../../components/layout/WizardHeader';
 import Spinner from '../../components/ui/Spinner';
 import ProgressBar from '../../components/ui/ProgressBar';
 import { useTranslation } from '../../i18n';
@@ -276,7 +277,9 @@ export default function GenerationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col p-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <WizardHeader />
+      <div className="flex flex-col p-6 flex-1 min-h-0">
       {/* ── Header: full width ── */}
       <div className="w-full max-w-6xl mx-auto flex flex-col gap-3 mb-4">
         <div className="text-center">
@@ -405,6 +408,7 @@ export default function GenerationPage() {
           </div>
         </div>
 
+      </div>
       </div>
     </div>
   );

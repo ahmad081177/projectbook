@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button';
 import FileDropZone from '../../components/ui/FileDropZone';
 import { useTranslation } from '../../i18n';
 import { parseAccessFile } from '../../services/parsers/accessParser';
+import { parseSqlFile } from '../../services/parsers/sqlParser';
 import { useAppStore } from '../../store';
 import type { DatabaseSchema } from '../../store/types';
 
@@ -22,23 +23,39 @@ export default function DatabaseUploadPage() {
   const canProceed = skipDb || schema !== null || fallbackImages.length > 0;
 
   const handleDbFile = useCallback(async (files: File[]) => {
-    const file = files.find((f) => /\.(mdb|accdb)$/i.test(f.name));
-    if (!file) {
-      setParseError('Please upload a .mdb or .accdb file');
+    const sqlFile = files.find((f) => /\.sql$/i.test(f.name));
+    const accessFile = files.find((f) => /\.(mdb|accdb)$/i.test(f.name));
+
+    if (!sqlFile && !accessFile) {
+      setParseError('Please upload a .sql, .mdb, or .accdb file');
       return;
     }
 
     setIsParsing(true);
     setParseError('');
     try {
-      const buffer = await file.arrayBuffer();
-      const result = parseAccessFile(file.name, buffer);
-      if (!result) {
-        setParseError('File does not appear to be a valid Access database');
-        setShowFallback(true);
-      } else {
-        setSchema(result);
-        setShowFallback(false);
+      let result: DatabaseSchema | null = null;
+
+      if (sqlFile) {
+        const text = await sqlFile.text();
+        result = parseSqlFile(text);
+        if (!result) {
+          setParseError('No CREATE TABLE statements found in the SQL file');
+          setShowFallback(true);
+        } else {
+          setSchema(result);
+          setShowFallback(false);
+        }
+      } else if (accessFile) {
+        const buffer = await accessFile.arrayBuffer();
+        result = parseAccessFile(accessFile.name, buffer);
+        if (!result) {
+          setParseError('File does not appear to be a valid Access database');
+          setShowFallback(true);
+        } else {
+          setSchema(result);
+          setShowFallback(false);
+        }
       }
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Failed to read file');
@@ -86,16 +103,21 @@ export default function DatabaseUploadPage() {
       }
     >
       <div className="flex flex-col gap-6">
-        {/* Primary path: Access DB file upload */}
+        {/* Primary path: DB file upload (.sql, .mdb, .accdb) */}
         {!showFallback && (
-          <FileDropZone
-            accept=".mdb,.accdb"
-            multiple={false}
-            label={t('upload.db.label')}
-            sublabel={t('upload.db.sub')}
-            onFiles={(files) => void handleDbFile(files)}
-            disabled={isParsing}
-          />
+          <>
+            <FileDropZone
+              accept=".sql,.mdb,.accdb"
+              multiple={false}
+              label="העלאת קובץ מסד נתונים"
+              sublabel=".sql (מומלץ), .accdb או .mdb (Access)"
+              onFiles={(files) => void handleDbFile(files)}
+              disabled={isParsing}
+            />
+            <p className="text-xs text-gray-400 text-center">
+              יציאת SQL מ-Access: פתח Access → External Data → Export → Text File / SQL
+            </p>
+          </>
         )}
 
         {isParsing && (
@@ -113,12 +135,25 @@ export default function DatabaseUploadPage() {
               {t('upload.db.found')
                 .replace('{tables}', String(schema.tables.length))
                 .replace('{rels}', '—')}
+              {schema.source === 'sql' && (
+                <span className="ms-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                  SQL ✔ עמודות + קשרים
+                </span>
+              )}
             </p>
             {schema.tables.length > 0 && (
-              <ul className="mt-2 space-y-0.5">
+              <ul className="mt-2 space-y-1">
                 {schema.tables.map((tbl) => (
-                  <li key={tbl.name} className="text-xs text-gray-700 font-mono">
-                    {tbl.name}
+                  <li key={tbl.name} className="text-xs text-gray-700">
+                    <span className="font-mono font-semibold">{tbl.name}</span>
+                    {tbl.columns.length > 0 && (
+                      <span className="ms-1 text-gray-400">
+                        ({tbl.columns.length} עמודות
+                        {tbl.columns.filter((c) => c.isPrimaryKey).length > 0 &&
+                          `, PK: ${tbl.columns.filter((c) => c.isPrimaryKey).map((c) => c.name).join(', ')}`}
+                        )
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

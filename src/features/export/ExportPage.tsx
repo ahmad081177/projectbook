@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import WizardLayout from '../../components/layout/WizardLayout';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import type { BadgeStatus } from '../../components/ui/Badge';
@@ -94,8 +95,16 @@ export default function ExportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-8">
-      <div className="w-full max-w-lg flex flex-col gap-6">
+    <WizardLayout
+      actions={
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => void navigate('/review/introduction')} className="flex-1">
+            ← חזרה לסקירה
+          </Button>
+        </div>
+      }
+    >
+      <div className="w-full max-w-lg mx-auto flex flex-col gap-6">
         {/* Compliance checklist */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col gap-3">
           <h2 className="text-base font-semibold text-gray-800">רשימת פרקים נדרשים</h2>
@@ -153,6 +162,6 @@ export default function ExportPage() {
           {t('start.over')}
         </button>
       </div>
-    </div>
+    </WizardLayout>
   );
 }

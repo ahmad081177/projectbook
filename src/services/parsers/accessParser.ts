@@ -22,6 +22,9 @@ const SYSTEM_STRINGS = new Set([
   'Tables','Queries','Forms','Reports','Pages','Macros','Modules',
   'AppUserVolunteerProject',       // repeated values, not user tables
   'szObject','szReferencedObject', // relationship system fields
+  // Common column names that appear frequently in Access binaries
+  'Value','Description','Title','Label','Caption','Text','Notes',
+  'Status','Category','Priority','Sequence','Position',
 ]);
 
 /**
@@ -64,7 +67,19 @@ export function extractTableNames(buffer: ArrayBuffer): string[] {
         !trimmed.startsWith('MSys') &&
         !trimmed.startsWith('~') &&
         !/^(Form_|Report_|Macro_|Module_|Switchboard|AutoExec)/i.test(trimmed) &&
-        !SYSTEM_STRINGS.has(trimmed)
+        !SYSTEM_STRINGS.has(trimmed) &&
+        // Reject likely column/field names:
+        !/[Ii]d$/.test(trimmed) &&            // UserId, ProjectId, WorkspaceId
+        !/At$/.test(trimmed) &&               // CreatedAt, UpdatedAt
+        !/On$/.test(trimmed) &&               // LoggedOn, CreatedOn
+        !/^Is[A-Z]/.test(trimmed) &&          // IsActive, IsDeleted
+        !/^Has[A-Z]/.test(trimmed) &&         // HasPassword
+        // Reject strings where one char dominates (artifacts like DDDDDDDDDDB)
+        !(() => {
+          const counts: Record<string, number> = {};
+          for (const ch of trimmed) counts[ch] = (counts[ch] ?? 0) + 1;
+          return Math.max(...Object.values(counts)) / trimmed.length >= 0.5;
+        })()
       ) {
         freq.set(trimmed, (freq.get(trimmed) ?? 0) + 1);
       }
@@ -76,7 +91,7 @@ export function extractTableNames(buffer: ArrayBuffer): string[] {
 
   // Table names repeat throughout the file; single-occurrence strings are
   // almost always field names, enum values, or query fragments.
-  const MIN_FREQ = 3;
+  const MIN_FREQ = 5;
   return [...freq.entries()]
     .filter(([, count]) => count >= MIN_FREQ)
     .sort((a, b) => b[1] - a[1])      // most-frequent first (likely real tables)

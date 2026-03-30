@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import StepIndicator from './StepIndicator';
+import WizardHeader from './WizardHeader';
 
 interface WizardLayoutProps {
   children: ReactNode;
@@ -16,14 +16,8 @@ export default function WizardLayout({
 }: WizardLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Step indicator pinned at top */}
-      {showSteps && (
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-          <div className="max-w-2xl mx-auto">
-            <StepIndicator />
-          </div>
-        </header>
-      )}
+      {/* Step indicator + app title pinned at top */}
+      {showSteps && <WizardHeader />}
 
       {/* Page content */}
       <main className="flex-1 flex flex-col">

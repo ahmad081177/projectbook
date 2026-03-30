@@ -28,7 +28,7 @@ export type SectionStatus =
   | 'skipped';
 
 export interface DatabaseSchema {
-  source: 'access' | 'mssql' | 'manual';
+  source: 'access' | 'mssql' | 'sql' | 'manual';
   tables: DatabaseTable[];
 }
 

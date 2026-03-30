@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import WizardHeader from '../../components/layout/WizardHeader';
 import Button from '../../components/ui/Button';
 import { useTranslation } from '../../i18n';
 import { useAppStore } from '../../store';
@@ -10,6 +11,7 @@ export default function DiagramsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <WizardHeader />
       <div className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-8">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">דיאגרמת מחלקות (UML)</h2>

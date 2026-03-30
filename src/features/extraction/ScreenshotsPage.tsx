@@ -81,6 +81,13 @@ export default function ScreenshotsPage() {
     });
   };
 
+  const clearAllScreenshots = () => {
+    setScreenshots((prev) => {
+      prev.forEach((s) => { if (s.thumbnailUrl) URL.revokeObjectURL(s.thumbnailUrl); });
+      return [];
+    });
+  };
+
   const openCarouselAt = (index: number) => {
     setCarouselStart(index);
     setCarouselOpen(true);
@@ -152,9 +159,18 @@ export default function ScreenshotsPage() {
                 <span className="text-sm text-gray-500">
                   {screenshots.length} {t('carousel.of')} {MAX_SCREENSHOTS}
                 </span>
-                <Button variant="secondary" onClick={openAnnotateButton}>
-                  {t('carousel.annotate')}
-                </Button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={clearAllScreenshots}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    🗑️ נקה הכל
+                  </button>
+                  <Button variant="secondary" onClick={openAnnotateButton}>
+                    {t('carousel.annotate')}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

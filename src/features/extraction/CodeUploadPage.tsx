@@ -133,11 +133,31 @@ export default function CodeUploadPage() {
 
         {parsed && !isParsing && (
           <div className="rounded-lg border border-gray-200 bg-white p-4 flex flex-col gap-3">
-            <p className="text-sm font-medium text-gray-800">
-              {t('upload.code.found')
-                .replace('{files}', String(parsed.fileCount))
-                .replace('{folders}', String(parsed.folderCount))}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-800">
+                {t('upload.code.found')
+                  .replace('{files}', String(parsed.fileCount))
+                  .replace('{folders}', String(parsed.folderCount))}
+              </p>
+              {/* Merge additional folders without losing what was already parsed */}
+              <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
+                📂 הוסף תיקייה נוספת
+                <input
+                  type="file"
+                  className="hidden"
+                  // @ts-expect-error webkitdirectory is valid but not in TS DOM types
+                  webkitdirectory=""
+                  multiple
+                  accept=".cs"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length > 0) void handleFiles(files);
+                    // Reset so the same folder can be re-selected
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
 
             {parsed.classes.length > 0 && (
               <div>
