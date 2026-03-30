@@ -83,6 +83,7 @@ export default function GenerationPage() {
   const started = useRef(false);
   const abortRef = useRef(false);
   const startTimeRef = useRef<number>(0);
+  const previewScrollRef = useRef<HTMLDivElement>(null);
 
   const completedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'failed').length;
   const successCount = tasks.filter((t) => t.status === 'complete').length;
@@ -97,6 +98,13 @@ export default function GenerationPage() {
     }, 1000);
     return () => clearInterval(id);
   }, [isDone]);
+
+  // Auto-scroll preview panel to bottom when new content arrives
+  useEffect(() => {
+    if (previewScrollRef.current) {
+      previewScrollRef.current.scrollTop = previewScrollRef.current.scrollHeight;
+    }
+  }, [previewSnippet]);
 
   const updateTask = (id: string, status: GenerationTask['status']) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
@@ -154,8 +162,8 @@ export default function GenerationPage() {
             },
           }));
           updateTask(key, 'complete');
-          // Show first ~300 chars of the generated chapter as a live preview
-          const snippet = content.replace(/\n+/g, ' ').trim().slice(0, 300);
+          // Show first ~300 words (~1800 chars) of the generated chapter as a live preview
+          const snippet = content.trim().slice(0, 1800);
           setPreviewSnippet({ label: CHAPTER_LABELS[key].replace('...', ''), text: snippet });
         } catch {
           failedCount++;
@@ -268,9 +276,9 @@ export default function GenerationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-8">
-      <div className="w-full max-w-2xl flex flex-col gap-6">
-        {/* Title */}
+    <div className="min-h-screen bg-gray-50 flex flex-col p-6">
+      {/* ── Header: full width ── */}
+      <div className="w-full max-w-6xl mx-auto flex flex-col gap-3 mb-4">
         <div className="text-center">
           <h1 className="text-xl font-semibold text-gray-800">
             {isDone ? '✅ יצירת הספר הושלמה' : '⚙️ מייצר את הספר...'}
@@ -285,10 +293,12 @@ export default function GenerationPage() {
         </div>
 
         {/* Stats bar */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-gray-500 px-1">
           <span>הושלמו: {successCount} / {tasks.length}</span>
           {!isDone && (
-            <span>זמן: {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')}</span>
+            <span>
+              זמן: {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')}
+            </span>
           )}
           <span>{progress}%</span>
         </div>
@@ -296,82 +306,105 @@ export default function GenerationPage() {
         <ProgressBar value={progress} />
 
         {hasAllFailed && !isStopped && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {t('status.failed')} — {t('download.button')} {'עדיין זמין'}
           </div>
         )}
 
         {isStopped && (
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
             היצירה הופסקה על ידי המשתמש. פרקים שנוצרו זמינים לסקירה.
           </div>
         )}
+      </div>
 
-        <ul className="flex flex-col gap-2">
-          {tasks.map((task) => (
-            <li key={task.id} className="flex items-center gap-3 text-sm">
-              <StatusIcon status={task.status} />
-              <span
-                className={
-                  task.status === 'complete'
-                    ? 'text-gray-700'
-                    : task.status === 'generating'
-                      ? 'text-blue-700 font-medium'
-                      : task.status === 'failed'
-                        ? 'text-amber-600'
-                        : 'text-gray-400'
-                }
-              >
-                {task.label}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {/* ── Two-column body ── */}
+      <div className="w-full max-w-6xl mx-auto flex gap-4 flex-1 min-h-0">
 
-        {/* Live content preview */}
-        {previewSnippet && !isDone && (
-          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 flex flex-col gap-1">
-            <span className="text-xs font-semibold text-blue-700">תצוגה מיידית — {previewSnippet.label}</span>
-            <p className="text-xs text-gray-700 leading-relaxed line-clamp-4" dir="rtl">
-              {previewSnippet.text}{previewSnippet.text.length >= 300 ? '…' : ''}
-            </p>
-          </div>
-        )}
+        {/* LEFT: task checklist + controls */}
+        <div className="w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-2 overflow-y-auto">
+          <ul className="flex flex-col gap-2 flex-1">
+            {tasks.map((task) => (
+              <li key={task.id} className="flex items-center gap-3 text-sm">
+                <StatusIcon status={task.status} />
+                <span
+                  className={
+                    task.status === 'complete'
+                      ? 'text-gray-700'
+                      : task.status === 'generating'
+                        ? 'text-blue-700 font-medium'
+                        : task.status === 'failed'
+                          ? 'text-amber-600'
+                          : 'text-gray-400'
+                  }
+                >
+                  {task.label}
+                </span>
+              </li>
+            ))}
+          </ul>
 
-        {/* Action buttons shown once generation is done */}
-        {isDone && (
-          <div className="flex gap-3 pt-2">
-            {failedKeys.length > 0 && (
+          {/* Action buttons once done */}
+          {isDone && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+              {failedKeys.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void retryFailed()}
+                  className="w-full rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium py-2 hover:bg-amber-100 transition-colors"
+                >
+                  🔄 נסה שוב ({failedKeys.length} פרקים)
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => void retryFailed()}
-                className="flex-1 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium py-2 hover:bg-amber-100 transition-colors"
+                onClick={() => void navigate('/review/introduction')}
+                className="w-full rounded-lg bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
               >
-                🔄 נסה שוב ({failedKeys.length} פרקים)
+                עבור לסקירה →
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void navigate('/review/introduction')}
-              className="flex-1 rounded-lg bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
-            >
-              עבור לסקירה →
-            </button>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Stop button — visible only while actively generating */}
-        {!isDone && (
-          <div className="flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={() => { abortRef.current = true; }}
-              className="text-sm text-red-500 hover:text-red-700 underline"
-            >
-              עצור יצירה
-            </button>
+          {/* Stop button while generating */}
+          {!isDone && (
+            <div className="pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => { abortRef.current = true; }}
+                className="w-full text-sm text-red-500 hover:text-red-700 underline py-1"
+              >
+                עצור יצירה
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: live content preview */}
+        <div className="flex-1 bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden min-h-[400px]">
+          {/* Panel header */}
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 flex-shrink-0">
+            <span>📄</span>
+            <span className="text-sm font-medium text-gray-700">
+              {previewSnippet?.label ?? 'ממתין לתוכן...'}
+            </span>
           </div>
-        )}
+
+          {/* Scrollable content */}
+          <div ref={previewScrollRef} className="flex-1 overflow-y-auto p-5">
+            {previewSnippet ? (
+              <p dir="rtl" className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {previewSnippet.text}
+                {previewSnippet.text.length >= 1800 ? '…' : ''}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 italic text-center mt-8">
+                התוכן יופיע כאן בזמן יצירתו...
+              </p>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
