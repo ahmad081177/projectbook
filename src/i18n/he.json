@@ -112,5 +112,22 @@
   "export.back": "← חזרה לסקירה",
   "export.redownload": "📄 הורד שוב",
   "export.wordHint": "פתח ב-Microsoft Word להשלמת שער + עריכה לפני הגשה.",
-  "export.diagrams": "דיאגרמות (UML + ERD)"
+  "export.diagrams": "דיאגרמות (UML + ERD)",
+  "review.chapters": "פרקים",
+  "review.diagrams": "דיאגרמות",
+  "review.status.complete": "✓ הושלם",
+  "review.status.failed": "✕ נכשל",
+  "review.status.generating": "⧗ מייצר",
+  "review.status.skipped": "— דולג",
+  "review.status.pending": "○ ממתין",
+  "review.regenerate": "צור פרק מחדש",
+  "review.regenerating": "מייצר...",
+  "review.generating.content": "מייצר תוכן...",
+  "review.failed.message": "פרק זה נכשל במהלך היצירה. ניתן לערוך בWord לאחר הורדה.",
+  "review.empty": "לא נוצר תוכן עדיין.",
+  "review.backToGenerate": "← חזרה ליצירה",
+  "review.backToChapters": "חזרה לפרקים",
+  "review.erd.title": "ERD — מסד נתונים",
+  "review.erd.notCreated": "⚠ לא נוצרה דיאגרמה",
+  "review.erd.waiting": "ממתין לייצור..."
 }

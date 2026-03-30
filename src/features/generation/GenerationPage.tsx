@@ -524,7 +524,7 @@ export default function GenerationPage() {
           {/* Scrollable content */}
           <div ref={previewScrollRef} className="flex-1 overflow-y-auto p-5">
             {previewSnippet ? (
-              <p dir="rtl" className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <p dir="rtl" className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap text-right">
                 {previewSnippet.text}
                 {previewSnippet.text.length >= 1800 ? '…' : ''}
               </p>

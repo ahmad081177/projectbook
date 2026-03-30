@@ -114,5 +114,22 @@
   "export.back": "→ رجوع إلى المراجعة",
   "export.redownload": "📄 تنزيل مجددًا",
   "export.wordHint": "افتح في Microsoft Word لإكمال الغلاف وتحريره قبل التسليم.",
-  "export.diagrams": "المخططات (UML + ERD)"
+  "export.diagrams": "المخططات (UML + ERD)",
+  "review.chapters": "الفصول",
+  "review.diagrams": "المخططات",
+  "review.status.complete": "✓ مكتمل",
+  "review.status.failed": "✕ فشل",
+  "review.status.generating": "⧗ جارٍ الإنشاء",
+  "review.status.skipped": "— تم التخطي",
+  "review.status.pending": "○ في الانتظار",
+  "review.regenerate": "إعادة إنشاء الفصل",
+  "review.regenerating": "جارٍ الإنشاء...",
+  "review.generating.content": "جارٍ إنشاء المحتوى...",
+  "review.failed.message": "فشل إنشاء هذا الفصل. يمكن تحريره في Word بعد التنزيل.",
+  "review.empty": "لم يُنشأ محتوى بعد.",
+  "review.backToGenerate": "→ العودة إلى الإنشاء",
+  "review.backToChapters": "العودة إلى الفصول",
+  "review.erd.title": "ERD — قاعدة البيانات",
+  "review.erd.notCreated": "⚠ لم يُنشأ مخطط",
+  "review.erd.waiting": "في انتظار الإنشاء..."
 }

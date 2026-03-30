@@ -8,7 +8,7 @@ import {
   PageBreak,
   AlignmentType,
 } from 'docx';
-import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN } from './styles';
+import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN, LTR_PARA } from './styles';
 import { mermaidToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
 import type { ChapterKey, CSharpClass, DatabaseTable } from '../../store/types';
 
@@ -489,7 +489,7 @@ async function buildDatabaseSection(
 
 function codeLineParagraph(text: string): Paragraph {
   return new Paragraph({
-    alignment: AlignmentType.LEFT,
+    ...LTR_PARA,
     children: [
       new TextRun({
         text,
@@ -668,6 +668,8 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
   const allBodySections: Paragraph[] = [];
   for (const key of CHAPTER_ORDER) {
     const { content, status } = input.generatedContent[key];
+    // Completely omit chapters the user chose not to generate
+    if (status === 'skipped') continue;
     if (key === 'introduction') {
       allBodySections.push(...buildIntroWithScreenshot(content, status, ss[0], lang));
     } else if (key === 'database') {
@@ -689,7 +691,10 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
       const paras = buildChapterSection(key, content, status, lang);
       appendOptionalScreenshot(paras, ss[2], lang);
       allBodySections.push(...paras);
-      allBodySections.push(...buildCSharpSection(input.classes ?? [], lang));
+      // Only add C# block when this chapter was actually generated
+      if (status === 'complete' && (input.classes ?? []).length > 0) {
+        allBodySections.push(...buildCSharpSection(input.classes ?? [], lang));
+      }
     } else if (key === 'clientImplementation') {
       const paras = buildChapterSection(key, content, status, lang);
       appendOptionalScreenshot(paras, ss[3], lang);

@@ -24,27 +24,16 @@ const CHAPTER_ORDER: ChapterKey[] = [
   'appendices',
 ];
 
-const CHAPTER_LABELS: Record<ChapterKey, string> = {
-  introduction: 'מבוא',
-  techStack: 'סקירת טכנולוגיות',
-  systemAnalysis: 'ניתוח מערכת',
-  database: 'מסד נתונים',
-  serverImplementation: 'מימוש צד שרת',
-  clientImplementation: 'מימוש צד לקוח',
-  userGuide: 'מדריך משתמש',
-  reflection: 'רפלקסיה',
-  difficulties: 'קשיים ופתרונות',
-  whatNext: 'פיתוחים עתידיים',
-  appendices: 'נספחים',
-};
-
-function statusToBadge(status: string): { badge: BadgeStatus; label: string } {
+function statusToBadge(
+  status: string,
+  t: (key: string) => string,
+): { badge: BadgeStatus; label: string } {
   switch (status) {
-    case 'complete': return { badge: 'success', label: '✓ הושלם' };
-    case 'failed': return { badge: 'error', label: '✕ נכשל' };
-    case 'generating': return { badge: 'info', label: '⟳ מייצר' };
-    case 'skipped': return { badge: 'idle', label: '— דולג' };
-    default: return { badge: 'idle', label: '○ ממתין' };
+    case 'complete':   return { badge: 'success', label: t('review.status.complete') };
+    case 'failed':     return { badge: 'error',   label: t('review.status.failed') };
+    case 'generating': return { badge: 'info',    label: t('review.status.generating') };
+    case 'skipped':    return { badge: 'idle',    label: t('review.status.skipped') };
+    default:           return { badge: 'idle',    label: t('review.status.pending') };
   }
 }
 
@@ -55,6 +44,7 @@ export default function ReviewPage() {
 
   const generatedContent = useAppStore((s) => s.generatedContent);
   const language = useAppStore((s) => s.language);
+  const isRtl = language === 'he' || language === 'ar';
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   const activeKey: ChapterKey = CHAPTER_ORDER.includes(chapterKey as ChapterKey)
@@ -115,10 +105,10 @@ export default function ReviewPage() {
         {/* Sidebar: chapter list */}
         <aside className="w-full sm:w-56 bg-white border-b sm:border-b-0 sm:border-e border-gray-200 p-4 flex flex-col gap-1">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-            פרקים
+            {t('review.chapters')}
           </h2>
           {CHAPTER_ORDER.map((key) => {
-            const { badge, label } = statusToBadge(generatedContent[key].status);
+            const { badge, label } = statusToBadge(generatedContent[key].status, t);
             return (
               <button
                 key={key}
@@ -131,7 +121,7 @@ export default function ReviewPage() {
                     : 'text-gray-700 hover:bg-gray-50',
                 ].join(' ')}
               >
-                <span>{CHAPTER_LABELS[key]}</span>
+                <span>{t(`gen.select.section.${key}`)}</span>
                 <Badge status={badge}>{label}</Badge>
               </button>
             );
@@ -140,7 +130,7 @@ export default function ReviewPage() {
           {/* Diagrams */}
           <div className="mt-4 pt-4 border-t border-gray-100">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              דיאגרמות
+              {t('review.diagrams')}
             </h2>
             <button
               onClick={() => void navigate('/review/diagrams')}
@@ -163,24 +153,22 @@ export default function ReviewPage() {
                 className="flex items-center gap-2 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium px-4 py-2 hover:bg-amber-100 transition-colors disabled:opacity-50"
               >
                 {isRegenerating ? <Spinner size="sm" /> : '🔄'}
-                {isRegenerating ? 'מייצר...' : 'צור פרק מחדש'}
+                {isRegenerating ? t('review.regenerating') : t('review.regenerate')}
               </button>
             </div>
           )}
           <div
-            dir={language === 'he' || language === 'ar' ? 'rtl' : 'ltr'}
-            className="prose prose-sm max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed"
+            dir={isRtl ? 'rtl' : 'ltr'}
+            className={`max-w-none text-gray-800 whitespace-pre-wrap leading-relaxed text-sm ${isRtl ? 'text-right' : 'text-left'}`}
           >
             {isRegenerating ? (
-              <p className="text-blue-600 italic">מייצר תוכן...</p>
+              <p className="text-blue-600 italic">{t('review.generating.content')}</p>
             ) : activeChapter.status === 'failed' ? (
-              <p className="text-amber-600 italic">
-                פרק זה נכשל במהלך היצירה. ניתן לערוך בWord לאחר הורדה.
-              </p>
+              <p className="text-amber-600 italic">{t('review.failed.message')}</p>
             ) : activeChapter.content ? (
               activeChapter.content
             ) : (
-              <p className="text-gray-400 italic">לא נוצר תוכן עדיין.</p>
+              <p className="text-gray-400 italic">{t('review.empty')}</p>
             )}
           </div>
         </main>
@@ -190,7 +178,7 @@ export default function ReviewPage() {
       <footer className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <Button variant="secondary" onClick={() => void navigate('/generate')}>
-            ← חזרה ליצירה
+            {t('review.backToGenerate')}
           </Button>
           <Button onClick={handleDownload}>{t('download.button')}</Button>
         </div>
