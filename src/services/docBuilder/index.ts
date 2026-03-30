@@ -10,7 +10,7 @@ import {
 } from 'docx';
 import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN } from './styles';
 import { mermaidToImageBuffer } from '../../utils/mermaid';
-import type { ChapterKey } from '../../store/types';
+import type { ChapterKey, DatabaseTable } from '../../store/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -28,6 +28,7 @@ export interface BuildDocumentInput {
     caption: string;
     userType: 'admin' | 'regular' | 'both';
   }>;
+  tables?: DatabaseTable[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -205,6 +206,142 @@ function buildIntroWithScreenshot(
   return paragraphs;
 }
 
+// ─── Database section with per-table sub-sections + ERD ─────────────────
+
+function tableToMermaidClass(table: DatabaseTable): string {
+  if (table.columns.length === 0) return '';
+  const fields = table.columns
+    .map((c) => {
+      const flags = [
+        c.isPrimaryKey ? 'PK' : '',
+        c.isForeignKey ? `FK→${c.referencesTable ?? '?'}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return `    +${c.type || 'TEXT'} ${c.name}${flags ? ' ' + flags : ''}`;
+    })
+    .join('\n');
+  return `classDiagram\n  class ${table.name} {\n${fields}\n  }`;
+}
+
+async function buildDatabaseSection(
+  content: string,
+  status: string,
+  tables: DatabaseTable[],
+  erdCode: string,
+  erdStatus: string,
+): Promise<Paragraph[]> {
+  const paragraphs: Paragraph[] = [
+    pageBreak(),
+    chapterHeading(CHAPTER_TITLES.database),
+  ];
+
+  if (status === 'failed' || !content.trim()) {
+    paragraphs.push(rtlParagraph('[פרק זה לא נוצר — השלם ידנית בWord]'));
+  } else {
+    paragraphs.push(...splitIntoParagraphs(content));
+  }
+
+  // ── Per-table sub-sections ──────────────────────────────────────────────
+  if (tables.length > 0) {
+    paragraphs.push(chapterHeading('מבנה הטבלאות', 2));
+
+    for (const table of tables) {
+      paragraphs.push(chapterHeading(table.name, 2));
+
+      if (table.description) {
+        paragraphs.push(rtlParagraph(table.description));
+      }
+
+      if (table.columns.length > 0) {
+        // Column list
+        for (const col of table.columns) {
+          const parts: string[] = [`${col.name} (${col.type})` ];
+          if (col.isPrimaryKey) parts.push('מפתח ראשי');
+          if (col.isForeignKey) parts.push(`מפתח זר ← ${col.referencesTable ?? '?'}`);
+          if (!col.nullable) parts.push('חובה');
+          if (col.description) parts.push(col.description);
+          paragraphs.push(
+            new Paragraph({
+              ...RTL_PARA,
+              indent: { right: 720 },
+              children: [new TextRun({ ...HEBREW_RUN, text: `• ${parts.join(' | ')}` })],
+            }),
+          );
+        }
+
+        // Per-table structure diagram
+        const mermaidCode = tableToMermaidClass(table);
+        if (mermaidCode) {
+          try {
+            const buf = await mermaidToImageBuffer(mermaidCode);
+            paragraphs.push(
+              new Paragraph({
+                ...RTL_PARA,
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 160, after: 160 },
+                children: [
+                  new ImageRun({ type: 'png', data: buf, transformation: { width: 380, height: 240 } }),
+                ],
+              }),
+            );
+          } catch { /* skip diagram on render failure */ }
+        }
+      } else {
+        paragraphs.push(rtlParagraph('[עמודות לא זוהו — הוסף תיאור ידנית]'));
+      }
+    }
+  }
+
+  // ── Relations sub-section ───────────────────────────────────────────────
+  paragraphs.push(chapterHeading('יחסים בין הטבלאות', 2));
+
+  // List FK relations derived from schema
+  const relations = tables.flatMap((t) =>
+    t.columns
+      .filter((c) => c.isForeignKey && c.referencesTable)
+      .map(
+        (c) =>
+          `${t.name}.${c.name} → ${c.referencesTable}${
+            c.referencesColumn ? `.${c.referencesColumn}` : ''
+          }`,
+      ),
+  );
+  if (relations.length > 0) {
+    for (const rel of relations) {
+      paragraphs.push(
+        new Paragraph({
+          ...RTL_PARA,
+          indent: { right: 720 },
+          children: [new TextRun({ ...HEBREW_RUN, text: `• ${rel}` })],
+        }),
+      );
+    }
+  }
+
+  if (erdStatus === 'complete' && erdCode) {
+    try {
+      const buf = await mermaidToImageBuffer(erdCode);
+      paragraphs.push(
+        new Paragraph({
+          ...RTL_PARA,
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 160 },
+          children: [
+            new ImageRun({ type: 'png', data: buf, transformation: { width: 540, height: 360 } }),
+          ],
+        }),
+      );
+    } catch {
+      paragraphs.push(rtlParagraph('[דיאגרמת ERD לא ניתנת לרינדור — הוסף ידנית]'));
+    }
+  } else {
+    paragraphs.push(rtlParagraph('[דיאגרמת ERD לא נוצרה — הוסף ידנית]'));
+  }
+
+  return paragraphs;
+}
+
 async function buildDiagramsSection(
   umlCode: string,
   umlStatus: string,
@@ -291,27 +428,27 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
     }),
   ];
 
-  const chapterSections: Paragraph[] = CHAPTER_ORDER.flatMap((key) => {
+  const allBodySections: Paragraph[] = [];
+  for (const key of CHAPTER_ORDER) {
+    const { content, status } = input.generatedContent[key];
     if (key === 'introduction') {
-      return buildIntroWithScreenshot(
-        input.generatedContent[key].content,
-        input.generatedContent[key].status,
-        input.screenshotFiles?.[0],
+      allBodySections.push(...buildIntroWithScreenshot(content, status, input.screenshotFiles?.[0]));
+    } else if (key === 'database') {
+      allBodySections.push(
+        ...await buildDatabaseSection(
+          content,
+          status,
+          input.tables ?? [],
+          input.diagrams.erd.mermaidCode,
+          input.diagrams.erd.status,
+        ),
       );
+    } else if (key === 'userGuide') {
+      allBodySections.push(...buildUserGuideWithScreenshots(content, status, input.screenshotFiles));
+    } else {
+      allBodySections.push(...buildChapterSection(key, content, status));
     }
-    if (key === 'userGuide') {
-      return buildUserGuideWithScreenshots(
-        input.generatedContent[key].content,
-        input.generatedContent[key].status,
-        input.screenshotFiles,
-      );
-    }
-    return buildChapterSection(
-      key,
-      input.generatedContent[key].content,
-      input.generatedContent[key].status,
-    );
-  });
+  }
 
   const diagramSection = await buildDiagramsSection(
     input.diagrams.uml.mermaidCode,
@@ -329,7 +466,7 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
             margin: { top: 1440, bottom: 1440, left: 1800, right: 1800 },
           },
         },
-        children: [...coverParagraphs, ...chapterSections, ...diagramSection],
+        children: [...coverParagraphs, ...allBodySections, ...diagramSection],
       },
     ],
   });
