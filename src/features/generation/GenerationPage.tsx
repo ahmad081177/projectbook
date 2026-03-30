@@ -19,20 +19,6 @@ interface GenerationTask {
   status: SectionStatus | 'pending';
 }
 
-const CHAPTER_LABELS: Record<ChapterKey, string> = {
-  introduction: 'כותב מבוא...',
-  techStack: 'כותב סקירת טכנולוגיות...',
-  systemAnalysis: 'כותב ניתוח מערכת...',
-  database: 'כותב פרק מסד נתונים...',
-  serverImplementation: 'כותב מימוש צד שרת...',
-  clientImplementation: 'כותב מימוש צד לקוח...',
-  userGuide: 'כותב מדריך משתמש...',
-  reflection: 'כותב רפלקסיה...',
-  difficulties: 'כותב קשיים ופתרונות...',
-  whatNext: 'כותב פיתוחים עתידיים...',
-  appendices: 'כותב נספחים...',
-};
-
 const CHAPTER_ORDER: ChapterKey[] = [
   'introduction',
   'techStack',
@@ -47,19 +33,18 @@ const CHAPTER_ORDER: ChapterKey[] = [
   'appendices',
 ];
 
-function buildTasks(): GenerationTask[] {
-  const tasks: GenerationTask[] = [
-    { id: 'read-code', label: 'קורא את הקוד שלך...', status: 'pending' },
-    { id: 'read-db', label: 'קורא את מסד הנתונים...', status: 'pending' },
+function buildTasks(t: (key: string) => string): GenerationTask[] {
+  return [
+    { id: 'read-code', label: t('gen.task.readCode'), status: 'pending' },
+    { id: 'read-db', label: t('gen.task.readDb'), status: 'pending' },
     ...CHAPTER_ORDER.map((key) => ({
       id: key,
-      label: CHAPTER_LABELS[key],
+      label: `${t(`gen.chapter.${key}`)}...`,
       status: 'pending' as const,
     })),
-    { id: 'uml', label: 'יוצר דיאגרמת UML...', status: 'pending' },
-    { id: 'erd', label: 'יוצר ERD...', status: 'pending' },
+    { id: 'uml', label: t('gen.task.uml'), status: 'pending' },
+    { id: 'erd', label: t('gen.task.erd'), status: 'pending' },
   ];
-  return tasks;
 }
 
 function StatusIcon({ status }: { status: GenerationTask['status'] }) {
@@ -74,7 +59,7 @@ export default function GenerationPage() {
   const navigate = useNavigate();
 
   const store = useAppStore.getState();
-  const [tasks, setTasks] = useState<GenerationTask[]>(buildTasks);
+  const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t));
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
   const [isDone, setIsDone] = useState(false);
@@ -165,7 +150,7 @@ export default function GenerationPage() {
           updateTask(key, 'complete');
           // Show first ~300 words (~1800 chars) of the generated chapter as a live preview
           const snippet = content.trim().slice(0, 1800);
-          setPreviewSnippet({ label: CHAPTER_LABELS[key].replace('...', ''), text: snippet });
+          setPreviewSnippet({ label: t(`gen.chapter.${key}`), text: snippet });
         } catch {
           failedCount++;
           localFailedKeys.push(key);
@@ -284,23 +269,23 @@ export default function GenerationPage() {
       <div className="w-full max-w-6xl mx-auto flex flex-col gap-3 mb-4">
         <div className="text-center">
           <h1 className="text-xl font-semibold text-gray-800">
-            {isDone ? '✅ יצירת הספר הושלמה' : '⚙️ מייצר את הספר...'}
+            {isDone ? t('gen.title.done') : t('gen.title.generating')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             {isDone
               ? failedKeys.length > 0
-                ? `${failedKeys.length} פרקים נכשלו — לחץ "נסה שוב" לנסות מחדש`
-                : 'עובר לסקירה...'
-              : 'אנא המתן, הפעולה עשויה לקחת מספר דקות'}
+                ? `${failedKeys.length} ${t('gen.subtitle.failedChapters')}`
+                : t('gen.subtitle.done')
+              : t('gen.subtitle.pleaseWait')}
           </p>
         </div>
 
         {/* Stats bar */}
         <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-          <span>הושלמו: {successCount} / {tasks.length}</span>
+          <span>{t('gen.stats.completed')}: {successCount} / {tasks.length}</span>
           {!isDone && (
             <span>
-              זמן: {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')}
+              {t('gen.stats.time')} {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')}
             </span>
           )}
           <span>{progress}%</span>
@@ -310,13 +295,13 @@ export default function GenerationPage() {
 
         {hasAllFailed && !isStopped && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {t('status.failed')} — {t('download.button')} {'עדיין זמין'}
+            {t('status.failed')} — {t('download.button')} {t('gen.stillAvailable')}
           </div>
         )}
 
         {isStopped && (
           <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
-            היצירה הופסקה על ידי המשתמש. פרקים שנוצרו זמינים לסקירה.
+            {t('gen.stopped')}
           </div>
         )}
       </div>
@@ -356,7 +341,7 @@ export default function GenerationPage() {
                   onClick={() => void retryFailed()}
                   className="w-full rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium py-2 hover:bg-amber-100 transition-colors"
                 >
-                  🔄 נסה שוב ({failedKeys.length} פרקים)
+                  {t('gen.retry')} ({failedKeys.length})
                 </button>
               )}
               <button
@@ -364,7 +349,7 @@ export default function GenerationPage() {
                 onClick={() => void navigate('/review/introduction')}
                 className="w-full rounded-lg bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
               >
-                עבור לסקירה →
+                {t('gen.goToReview')}
               </button>
             </div>
           )}
@@ -377,7 +362,7 @@ export default function GenerationPage() {
                 onClick={() => { abortRef.current = true; }}
                 className="w-full text-sm text-red-500 hover:text-red-700 underline py-1"
               >
-                עצור יצירה
+                {t('gen.stop')}
               </button>
             </div>
           )}
@@ -389,7 +374,7 @@ export default function GenerationPage() {
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 flex-shrink-0">
             <span>📄</span>
             <span className="text-sm font-medium text-gray-700">
-              {previewSnippet?.label ?? 'ממתין לתוכן...'}
+              {previewSnippet?.label ?? t('gen.preview.waiting')}
             </span>
           </div>
 
@@ -402,7 +387,7 @@ export default function GenerationPage() {
               </p>
             ) : (
               <p className="text-sm text-gray-400 italic text-center mt-8">
-                התוכן יופיע כאן בזמן יצירתו...
+                {t('gen.preview.placeholder')}
               </p>
             )}
           </div>
