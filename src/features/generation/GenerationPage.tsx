@@ -77,6 +77,8 @@ export default function GenerationPage() {
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
   const [isDone, setIsDone] = useState(false);
+  const [isStopped, setIsStopped] = useState(false);
+  const [previewSnippet, setPreviewSnippet] = useState<{ label: string; text: string } | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
   const started = useRef(false);
   const abortRef = useRef(false);
@@ -152,6 +154,9 @@ export default function GenerationPage() {
             },
           }));
           updateTask(key, 'complete');
+          // Show first ~300 chars of the generated chapter as a live preview
+          const snippet = content.replace(/\n+/g, ' ').trim().slice(0, 300);
+          setPreviewSnippet({ label: CHAPTER_LABELS[key].replace('...', ''), text: snippet });
         } catch {
           failedCount++;
           localFailedKeys.push(key);
@@ -201,11 +206,14 @@ export default function GenerationPage() {
       setHasAllFailed(failedCount === CHAPTER_ORDER.length);
       setFailedKeys(localFailedKeys);
       setIsDone(true);
-      useAppStore.setState({ isGenerating: false, completedStep: 5 });
-
-      // Auto-advance to review only when everything succeeded
-      if (failedCount === 0) {
-        setTimeout(() => void navigate('/review/introduction'), 800);
+      if (!abortRef.current) {
+        useAppStore.setState({ isGenerating: false, completedStep: 5 });
+        if (failedCount === 0) {
+          setTimeout(() => void navigate('/review/introduction'), 800);
+        }
+      } else {
+        setIsStopped(true);
+        useAppStore.setState({ isGenerating: false, completedStep: 5 });
       }
     };
 
@@ -287,9 +295,15 @@ export default function GenerationPage() {
 
         <ProgressBar value={progress} />
 
-        {hasAllFailed && (
+        {hasAllFailed && !isStopped && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {t('status.failed')} — {t('download.button')} {'עדיין זמין'}
+          </div>
+        )}
+
+        {isStopped && (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
+            היצירה הופסקה על ידי המשתמש. פרקים שנוצרו זמינים לסקירה.
           </div>
         )}
 
@@ -314,6 +328,16 @@ export default function GenerationPage() {
           ))}
         </ul>
 
+        {/* Live content preview */}
+        {previewSnippet && !isDone && (
+          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 flex flex-col gap-1">
+            <span className="text-xs font-semibold text-blue-700">תצוגה מיידית — {previewSnippet.label}</span>
+            <p className="text-xs text-gray-700 leading-relaxed line-clamp-4" dir="rtl">
+              {previewSnippet.text}{previewSnippet.text.length >= 300 ? '…' : ''}
+            </p>
+          </div>
+        )}
+
         {/* Action buttons shown once generation is done */}
         {isDone && (
           <div className="flex gap-3 pt-2">
@@ -332,6 +356,19 @@ export default function GenerationPage() {
               className="flex-1 rounded-lg bg-blue-600 text-white text-sm font-medium py-2 hover:bg-blue-700 transition-colors"
             >
               עבור לסקירה →
+            </button>
+          </div>
+        )}
+
+        {/* Stop button — visible only while actively generating */}
+        {!isDone && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={() => { abortRef.current = true; }}
+              className="text-sm text-red-500 hover:text-red-700 underline"
+            >
+              עצור יצירה
             </button>
           </div>
         )}

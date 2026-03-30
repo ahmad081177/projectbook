@@ -9,25 +9,42 @@ export function isAccessFile(buffer: ArrayBuffer): boolean {
   return JET_MAGIC.every((b, i) => view[i] === b);
 }
 
+// Well-known MSysObjects column names and other system strings that appear
+// as UTF-16LE sequences in the binary but are NOT user table names.
+const SYSTEM_STRINGS = new Set([
+  'Connect','Database','DateCreate','DateUpdate','Flags','ForeignName',
+  'Id','Lv','LvExtra','LvModule','LvProp','Name','Owner','ParentId',
+  'RmtInfoLong','RmtInfoShort','Type','ParentIdName',
+  'ACM','FInheritable','ObjectId','SID',
+  'Attribute','Expression','Flag','Name1','Name2','Order',
+  'ccolumn','grbit','icolumn','szColumn','szRelationship',
+  'DataAccessPages','SysRel','Scripts','Workspaces',
+  'Tables','Queries','Forms','Reports','Pages','Macros','Modules',
+  'AppUserVolunteerProject',       // repeated values, not user tables
+  'szObject','szReferencedObject', // relationship system fields
+]);
+
 /**
  * Heuristically scans an Access MDB/ACCDB binary for user table names.
  *
- * Strategy: table names are stored as UTF-16LE strings in the internal
- * catalog pages. We find them by scanning for 2-byte-aligned ASCII
- * sequences of length ≥ 2, filtering out Jet system tables (MSys*).
+ * Strategy: table names appear many times throughout the file (referenced
+ * in data pages, indexes, catalog entries). Pure field names and value
+ * strings appear far fewer times. We count occurrences of each candidate
+ * string and require a minimum frequency to accept it as a table name.
  *
- * This is a best-effort scanner and may miss tables in heavily encrypted
- * or non-standard databases. The screenshot fallback handles those cases.
+ * Additional filters:
+ * - Must start with a letter (not a digit, not an underscore)
+ * - Must be alphanumeric/underscore/space only, 3–64 chars
+ * - Not an MSys* / ~* system name
+ * - Not in the hard-coded denylist of known MSysObjects column names
+ * - Must appear at least MIN_FREQ times in the binary
  */
 export function extractTableNames(buffer: ArrayBuffer): string[] {
   const bytes = new Uint8Array(buffer);
-  const names = new Set<string>();
+  const freq = new Map<string, number>();
 
-  // Scan for UTF-16LE encoded strings that look like table names
   let i = 0;
   while (i < bytes.length - 2) {
-    // Look for a sequence of printable ASCII chars encoded as UTF-16LE
-    // (each char = 2 bytes; high byte = 0x00, low byte = printable ASCII)
     if (bytes[i + 1] === 0x00 && isPrintableAscii(bytes[i])) {
       let j = i;
       let name = '';
@@ -39,17 +56,17 @@ export function extractTableNames(buffer: ArrayBuffer): string[] {
         name += String.fromCharCode(bytes[j]);
         j += 2;
       }
-
+      const trimmed = name.trim();
       if (
-        name.length >= 2 &&
-        name.length <= 64 &&
-        /^[A-Za-z_][A-Za-z0-9_ ]*$/.test(name) &&
-        !name.startsWith('MSys') &&
-        !name.startsWith('~') &&
-        !name.startsWith('_') &&
-        !/^(Form|Report|Macro|Module|Relationships|Switchboard|AutoExec)/i.test(name)
+        trimmed.length >= 3 &&
+        trimmed.length <= 64 &&
+        /^[A-Za-z][A-Za-z0-9_ ]*$/.test(trimmed) &&
+        !trimmed.startsWith('MSys') &&
+        !trimmed.startsWith('~') &&
+        !/^(Form_|Report_|Macro_|Module_|Switchboard|AutoExec)/i.test(trimmed) &&
+        !SYSTEM_STRINGS.has(trimmed)
       ) {
-        names.add(name.trim());
+        freq.set(trimmed, (freq.get(trimmed) ?? 0) + 1);
       }
       i = j;
     } else {
@@ -57,8 +74,13 @@ export function extractTableNames(buffer: ArrayBuffer): string[] {
     }
   }
 
-  // Deduplicate and filter implausible entries
-  return [...names].filter((n) => n.length >= 2);
+  // Table names repeat throughout the file; single-occurrence strings are
+  // almost always field names, enum values, or query fragments.
+  const MIN_FREQ = 3;
+  return [...freq.entries()]
+    .filter(([, count]) => count >= MIN_FREQ)
+    .sort((a, b) => b[1] - a[1])      // most-frequent first (likely real tables)
+    .map(([name]) => name);
 }
 
 function isPrintableAscii(byte: number): boolean {
