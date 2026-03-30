@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildProjectSummary } from './gemini';
+import { buildProjectSummary, tablesToContext } from './gemini';
 import type { GenerationContext } from './gemini';
 import type { CSharpClass, DatabaseTable } from '../store/types';
 
@@ -199,5 +199,48 @@ describe('buildProjectSummary', () => {
     const summary = buildProjectSummary(makeCtx([]));
     expect(summary).toContain('── פרטי הפרויקט ──');
     expect(summary).toContain('──────────────────');
+  });
+});
+
+// ── tablesToContext (Story 6-2) ───────────────────────────────────────────────
+
+describe('tablesToContext', () => {
+  it('emits [no column info available] for a table with no columns', () => {
+    const tables: DatabaseTable[] = [{ name: 'Users', columns: [] }];
+    const ctx = tablesToContext(tables);
+    expect(ctx).toContain('[no column info available');
+  });
+
+  it('emits column names and types when columns are present', () => {
+    const tables: DatabaseTable[] = [
+      {
+        name: 'Orders',
+        columns: [
+          { name: 'OrderId', type: 'INTEGER', nullable: false, isPrimaryKey: true, isForeignKey: false },
+          { name: 'UserId', type: 'INTEGER', nullable: false, isPrimaryKey: false, isForeignKey: true, referencesTable: 'Users' },
+          { name: 'Amount', type: 'DECIMAL', nullable: true, isPrimaryKey: false, isForeignKey: false },
+        ],
+      },
+    ];
+    const ctx = tablesToContext(tables);
+    expect(ctx).toContain('TABLE Orders');
+    expect(ctx).toContain('OrderId');
+    expect(ctx).toContain('PK');
+    expect(ctx).toContain('FK→Users');
+    expect(ctx).toContain('Amount');
+  });
+
+  it('renders multiple tables separated by blank lines', () => {
+    const tables: DatabaseTable[] = [
+      { name: 'A', columns: [] },
+      { name: 'B', columns: [] },
+    ];
+    const ctx = tablesToContext(tables);
+    expect(ctx).toContain('TABLE A');
+    expect(ctx).toContain('TABLE B');
+  });
+
+  it('returns empty string for empty table list', () => {
+    expect(tablesToContext([])).toBe('');
   });
 });

@@ -108,6 +108,63 @@ function isPrintableAscii(byte: number): boolean {
 }
 
 /**
+ * Scans an Access MDB/ACCDB binary for column names belonging to a specific table.
+ * Uses UTF-16LE proximity scan: searches within ±WINDOW bytes of each occurrence
+ * of the tableName UTF-16LE string.
+ *
+ * Used in the heuristic fallback path when mdb-reader cannot parse the file.
+ */
+export function extractColumnNames(buffer: ArrayBuffer, tableName: string): string[] {
+  const bytes = new Uint8Array(buffer);
+  const WINDOW = 2048;
+
+  // Find all byte offsets where tableName appears as UTF-16LE
+  const tableUtf16 = Array.from(tableName).flatMap((ch) => [ch.charCodeAt(0), 0]);
+  const offsets: number[] = [];
+  for (let i = 0; i < bytes.length - tableUtf16.length; i++) {
+    if (tableUtf16.every((b, j) => bytes[i + j] === b)) offsets.push(i);
+  }
+  if (offsets.length === 0) return [];
+
+  // Scan within WINDOW bytes of each occurrence; count candidate strings
+  const freq = new Map<string, number>();
+  for (const offset of offsets) {
+    const start = Math.max(0, offset - WINDOW);
+    const end = Math.min(bytes.length, offset + WINDOW);
+    let i = start;
+    while (i < end - 1) {
+      if (bytes[i + 1] === 0x00 && isPrintableAscii(bytes[i])) {
+        let j = i;
+        let name = '';
+        while (j < end - 1 && bytes[j + 1] === 0x00 && isPrintableAscii(bytes[j])) {
+          name += String.fromCharCode(bytes[j]);
+          j += 2;
+        }
+        const trimmed = name.trim();
+        if (
+          trimmed.length >= 2 &&
+          trimmed.length <= 32 &&
+          /^[A-Za-z][A-Za-z0-9_]*$/.test(trimmed) &&
+          !SYSTEM_STRINGS.has(trimmed) &&
+          trimmed !== tableName
+        ) {
+          freq.set(trimmed, (freq.get(trimmed) ?? 0) + 1);
+        }
+        i = j;
+      } else {
+        i++;
+      }
+    }
+  }
+
+  return [...freq.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([name]) => name);
+}
+
+/**
  * Parses an Access DB file buffer into a DatabaseSchema using mdb-reader.
  * Falls back to heuristic table-name extraction if mdb-reader cannot parse the file.
  * Returns null if the buffer does not appear to be a valid Jet database.
@@ -144,11 +201,18 @@ export function parseAccessFile(
   } catch {
     // --- Fallback: heuristic scan (covers edge cases mdb-reader can't parse) ---
     const tableNames = extractTableNames(buffer);
-    const tables: DatabaseTable[] = tableNames.map((name) => ({
-      name,
-      columns: [],
-      description: '',
-    }));
+    const tables: DatabaseTable[] = tableNames.map((name) => {
+      const colNames = extractColumnNames(buffer, name);
+      const columns = colNames.map((colName) => ({
+        name: colName,
+        type: 'TEXT',
+        nullable: true,
+        isPrimaryKey: false,
+        isForeignKey: false,
+        description: '',
+      }));
+      return { name, columns, description: '' };
+    });
     return { source: 'access', tables: tables.length > 0 ? tables : [] };
   }
 }

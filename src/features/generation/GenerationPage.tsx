@@ -7,7 +7,6 @@ import ProgressBar from '../../components/ui/ProgressBar';
 import { useTranslation } from '../../i18n';
 import {
   generateChapter,
-  generateUmlDiagram,
   generateErdDiagram,
   type GenerationContext,
 } from '../../services/gemini';
@@ -34,7 +33,7 @@ const CHAPTER_ORDER: ChapterKey[] = [
   'appendices',
 ];
 
-const ALL_SECTION_IDS = [...CHAPTER_ORDER, 'uml', 'erd'];
+const ALL_SECTION_IDS = [...CHAPTER_ORDER, 'erd'];
 
 function buildTasks(t: (key: string) => string, selected: Set<string>): GenerationTask[] {
   return [
@@ -47,7 +46,6 @@ function buildTasks(t: (key: string) => string, selected: Set<string>): Generati
         label: `${t(`gen.chapter.${key}`)}...`,
         status: 'pending' as const,
       })),
-    ...(selected.has('uml') ? [{ id: 'uml', label: t('gen.task.uml'), status: 'pending' as const }] : []),
     ...(selected.has('erd') ? [{ id: 'erd', label: t('gen.task.erd'), status: 'pending' as const }] : []),
   ];
 }
@@ -227,22 +225,6 @@ export default function GenerationPage() {
       }
 
       // Step 3: Generate diagrams (only if selected)
-      if (sel.has('uml')) {
-        updateTask('uml', 'generating');
-        try {
-          const umlCode = await generateUmlDiagram(ctx);
-          useAppStore.setState((s) => ({
-            diagrams: { ...s.diagrams, uml: { mermaidCode: umlCode, status: 'complete' } },
-          }));
-          updateTask('uml', 'complete');
-        } catch {
-          useAppStore.setState((s) => ({
-            diagrams: { ...s.diagrams, uml: { mermaidCode: '', status: 'failed' } },
-          }));
-          updateTask('uml', 'failed');
-        }
-      }
-
       if (sel.has('erd')) {
         updateTask('erd', 'generating');
         try {

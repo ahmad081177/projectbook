@@ -38,4 +38,16 @@ export const HEADING2_RUN: Partial<IRunOptions> = {
   size: 26, // 13pt
 };
 
+export const HEADING3_RUN: Partial<IRunOptions> = {
+  ...HEBREW_RUN,
+  bold: true,
+  size: 24, // 12pt bold
+};
+
+export const HEADING4_RUN: Partial<IRunOptions> = {
+  ...HEBREW_RUN,
+  bold: true,
+  size: 24,
+};
+
 

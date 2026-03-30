@@ -13,7 +13,7 @@ function ensureInit() {
  * Renders a Mermaid diagram string to a PNG ArrayBuffer.
  * Uses an off-screen div + canvas; browser-only (do not call in tests/SSR).
  */
-export async function mermaidToImageBuffer(code: string): Promise<ArrayBuffer> {
+export async function mermaidToImageBuffer(code: string, options?: { width?: number; height?: number }): Promise<ArrayBuffer> {
   ensureInit();
 
   const id = `mermaid-render-${Date.now()}`;
@@ -33,8 +33,8 @@ export async function mermaidToImageBuffer(code: string): Promise<ArrayBuffer> {
     img.src = svgDataUrl;
   });
 
-  const WIDTH = 1160;
-  const HEIGHT = 760;
+  const WIDTH = options?.width ?? 2400;
+  const HEIGHT = options?.height ?? 1600;
   const canvas = document.createElement('canvas');
   canvas.width = WIDTH;
   canvas.height = HEIGHT;

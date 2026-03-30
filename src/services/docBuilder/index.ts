@@ -8,7 +8,7 @@ import {
   PageBreak,
   AlignmentType,
 } from 'docx';
-import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN } from './styles';
+import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN } from './styles';
 import { mermaidToImageBuffer } from '../../utils/mermaid';
 import type { ChapterKey, CSharpClass, DatabaseTable } from '../../store/types';
 
@@ -59,6 +59,89 @@ function splitIntoParagraphs(text: string): Paragraph[] {
     .map((block) => rtlParagraph(block));
 }
 
+// ─── Inline markdown parser (Story 8-3) ──────────────────────────────────
+
+export function parseInlineMarkdown(text: string): TextRun[] {
+  const runs: TextRun[] = [];
+  // Match bold-italic (**_..._**), bold (**...**), underline (__...__),
+  // italic (_..._  or  *...*), and plain text
+  const pattern = /(\*\*_[\s\S]+?_\*\*|\*\*[\s\S]+?\*\*|__[^_]+__|_[^_]+_|\*[^*]+\*|[^*_]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    const seg = match[1];
+    if (!seg) continue;
+    if (/^\*\*_[\s\S]+?_\*\*$/.test(seg)) {
+      runs.push(new TextRun({ ...HEBREW_RUN, bold: true, italics: true, text: seg.slice(3, -3) }));
+    } else if (/^\*\*[\s\S]+?\*\*$/.test(seg)) {
+      runs.push(new TextRun({ ...HEBREW_RUN, bold: true, text: seg.slice(2, -2) }));
+    } else if (/^__[^_]+__$/.test(seg)) {
+      runs.push(new TextRun({ ...HEBREW_RUN, underline: {}, text: seg.slice(2, -2) }));
+    } else if (/^_[^_]+_$/.test(seg) || /^\*[^*]+\*$/.test(seg)) {
+      runs.push(new TextRun({ ...HEBREW_RUN, italics: true, text: seg.slice(1, -1) }));
+    } else {
+      runs.push(new TextRun({ ...HEBREW_RUN, text: seg }));
+    }
+  }
+  return runs.length > 0 ? runs : [new TextRun({ ...HEBREW_RUN, text })];
+}
+
+export function markdownToDocxParagraphs(text: string): Paragraph[] {
+  const lines = text.split('\n');
+  const paragraphs: Paragraph[] = [];
+  let block: string[] = [];
+
+  const flushBlock = () => {
+    if (!block.length) return;
+    const joined = block.join('\n').trim();
+    block = [];
+    if (!joined) return;
+    paragraphs.push(new Paragraph({ ...RTL_PARA, children: parseInlineMarkdown(joined) }));
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    // Skip horizontal rules
+    if (/^---+$/.test(line)) { flushBlock(); continue; }
+
+    // Heading levels
+    const h4 = line.match(/^####\s+(.*)/);
+    const h3 = line.match(/^###\s+(.*)/);
+    const h2 = line.match(/^##\s+(.*)/);
+    if (h2 || h3 || h4) {
+      flushBlock();
+      const matched = (h2 ?? h3 ?? h4)!;
+      const level = h4 ? 4 : h3 ? 3 : 2;
+      const headingLevel = level === 2 ? HeadingLevel.HEADING_2 : level === 3 ? HeadingLevel.HEADING_3 : HeadingLevel.HEADING_4;
+      const runStyle = level === 2 ? HEADING2_RUN : level === 3 ? HEADING3_RUN : HEADING4_RUN;
+      paragraphs.push(new Paragraph({
+        ...RTL_PARA,
+        heading: headingLevel,
+        children: [new TextRun({ ...runStyle, text: matched[1] })],
+      }));
+      continue;
+    }
+
+    // Bullet items
+    if (/^[-•]\s+/.test(line)) {
+      flushBlock();
+      paragraphs.push(new Paragraph({
+        ...RTL_PARA,
+        indent: { right: 720 },
+        children: parseInlineMarkdown('• ' + line.replace(/^[-•]\s+/, '')),
+      }));
+      continue;
+    }
+
+    // Blank line = paragraph break
+    if (line === '') { flushBlock(); continue; }
+
+    block.push(line);
+  }
+  flushBlock();
+  return paragraphs;
+}
+
 function pageBreak(): Paragraph {
   return new Paragraph({ ...RTL_PARA, children: [new PageBreak()] });
 }
@@ -81,7 +164,7 @@ function buildUserGuideWithScreenshots(
   if (status === 'failed' || !content.trim()) {
     base.push(rtlParagraph('[פרק זה לא נוצר — השלם ידנית בWord]'));
   } else {
-    base.push(...splitIntoParagraphs(content));
+    base.push(...markdownToDocxParagraphs(content));
   }
 
   if (!screenshotFiles || screenshotFiles.length === 0) return base;
@@ -166,7 +249,7 @@ function buildChapterSection(key: ChapterKey, content: string, status: string): 
   if (status === 'failed' || !content.trim()) {
     paragraphs.push(rtlParagraph('[פרק זה לא נוצר — השלם ידנית בWord]'));
   } else {
-    paragraphs.push(...splitIntoParagraphs(content));
+    paragraphs.push(...markdownToDocxParagraphs(content));
   }
 
   return paragraphs;
@@ -209,20 +292,26 @@ function buildIntroWithScreenshot(
 
 // ─── Database section with per-table sub-sections + ERD ─────────────────
 
-function tableToMermaidClass(table: DatabaseTable): string {
-  if (table.columns.length === 0) return '';
+/**
+ * Generates a single-table erDiagram Mermaid code for a given table.
+ * Used to produce a per-table screenshot in the database chapter.
+ */
+function tableToSingleErDiagram(table: DatabaseTable): string {
+  if (table.columns.length === 0) {
+    return `erDiagram\n  ${table.name} {\n    string id\n  }`;
+  }
   const fields = table.columns
     .map((c) => {
       const flags = [
         c.isPrimaryKey ? 'PK' : '',
-        c.isForeignKey ? `FK→${c.referencesTable ?? '?'}` : '',
+        c.isForeignKey ? 'FK' : '',
       ]
         .filter(Boolean)
         .join(' ');
-      return `    +${c.type || 'TEXT'} ${c.name}${flags ? ' ' + flags : ''}`;
+      return `    ${c.type || 'string'} ${c.name}${flags ? ' "' + flags + '"' : ''}`;
     })
     .join('\n');
-  return `classDiagram\n  class ${table.name} {\n${fields}\n  }`;
+  return `erDiagram\n  ${table.name} {\n${fields}\n  }`;
 }
 
 async function buildDatabaseSection(
@@ -271,23 +360,21 @@ async function buildDatabaseSection(
           );
         }
 
-        // Per-table structure diagram
-        const mermaidCode = tableToMermaidClass(table);
-        if (mermaidCode) {
-          try {
-            const buf = await mermaidToImageBuffer(mermaidCode);
-            paragraphs.push(
-              new Paragraph({
-                ...RTL_PARA,
-                alignment: AlignmentType.CENTER,
-                spacing: { before: 160, after: 160 },
-                children: [
-                  new ImageRun({ type: 'png', data: buf, transformation: { width: 380, height: 240 } }),
-                ],
-              }),
-            );
-          } catch { /* skip diagram on render failure */ }
-        }
+        // Per-table ERD screenshot (high quality, one table only)
+        const mermaidCode = tableToSingleErDiagram(table);
+        try {
+          const buf = await mermaidToImageBuffer(mermaidCode);
+          paragraphs.push(
+            new Paragraph({
+              ...RTL_PARA,
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 160, after: 160 },
+              children: [
+                new ImageRun({ type: 'png', data: buf, transformation: { width: 420, height: 280 } }),
+              ],
+            }),
+          );
+        } catch { /* skip diagram on render failure */ }
       } else {
         paragraphs.push(rtlParagraph('[עמודות לא זוהו — הוסף תיאור ידנית]'));
       }
@@ -321,6 +408,7 @@ async function buildDatabaseSection(
   }
 
   if (erdStatus === 'complete' && erdCode) {
+    paragraphs.push(chapterHeading('דיאגרמת ERD — כל הטבלאות', 2));
     try {
       const buf = await mermaidToImageBuffer(erdCode);
       paragraphs.push(
@@ -329,7 +417,7 @@ async function buildDatabaseSection(
           alignment: AlignmentType.CENTER,
           spacing: { before: 160 },
           children: [
-            new ImageRun({ type: 'png', data: buf, transformation: { width: 540, height: 360 } }),
+            new ImageRun({ type: 'png', data: buf, transformation: { width: 580, height: 400 } }),
           ],
         }),
       );
@@ -343,54 +431,8 @@ async function buildDatabaseSection(
   return paragraphs;
 }
 
-async function buildDiagramsSection(
-  umlCode: string,
-  umlStatus: string,
-  erdCode: string,
-  erdStatus: string,
-): Promise<Paragraph[]> {
-  const paragraphs: Paragraph[] = [
-    pageBreak(),
-    chapterHeading('דיאגרמות'),
-    chapterHeading('UML — דיאגרמת מחלקות', 2),
-  ];
-
-  if (umlStatus === 'complete' && umlCode) {
-    try {
-      const buf = await mermaidToImageBuffer(umlCode);
-      paragraphs.push(
-        new Paragraph({
-          ...RTL_PARA,
-          children: [new ImageRun({ type: 'png', data: buf, transformation: { width: 580, height: 380 } })],
-        }),
-      );
-    } catch {
-      paragraphs.push(rtlParagraph('[דיאגרמת UML לא ניתנת לרינדור — הוסף ידנית]'));
-    }
-  } else {
-    paragraphs.push(rtlParagraph('[דיאגרמת UML לא נוצרה — הוסף ידנית]'));
-  }
-
-  paragraphs.push(chapterHeading('ERD — מסד נתונים', 2));
-
-  if (erdStatus === 'complete' && erdCode) {
-    try {
-      const buf = await mermaidToImageBuffer(erdCode);
-      paragraphs.push(
-        new Paragraph({
-          ...RTL_PARA,
-          children: [new ImageRun({ type: 'png', data: buf, transformation: { width: 580, height: 380 } })],
-        }),
-      );
-    } catch {
-      paragraphs.push(rtlParagraph('[דיאגרמת ERD לא ניתנת לרינדור — הוסף ידנית]'));
-    }
-  } else {
-    paragraphs.push(rtlParagraph('[דיאגרמת ERD לא נוצרה — הוסף ידנית]'));
-  }
-
-  return paragraphs;
-}
+// buildDiagramsSection removed — UML is no longer generated, and the full ERD
+// is rendered inside buildDatabaseSection (per-table + full-schema screenshots).
 
 // ─── C# Classes section ─────────────────────────────────────────────────
 
@@ -478,6 +520,56 @@ function buildCSharpSection(classes: CSharpClass[]): Paragraph[] {
 
 // ─── Public API: build & download ────────────────────────────────────────
 
+/**
+ * Appends one optional screenshot (story 8-4) after a chapter's text paragraphs.
+ * Used to distribute screenshots across System Analysis, Server, and Client chapters.
+ */
+function appendOptionalScreenshot(
+  paragraphs: Paragraph[],
+  screenshot: { arrayBuffer: ArrayBuffer; screenName: string; caption: string; userType: 'admin' | 'regular' | 'both' } | undefined,
+): void {
+  if (!screenshot) return;
+  paragraphs.push(
+    new Paragraph({
+      ...RTL_PARA,
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ ...HEADING2_RUN, text: screenshot.screenName })],
+    }),
+  );
+  try {
+    paragraphs.push(
+      new Paragraph({
+        ...RTL_PARA,
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: screenshot.arrayBuffer,
+            transformation: { width: 420, height: 280 },
+          }),
+        ],
+      }),
+    );
+  } catch { /* skip image on failure */ }
+  if (screenshot.caption) {
+    paragraphs.push(
+      new Paragraph({
+        ...RTL_PARA,
+        children: [new TextRun({ ...HEBREW_RUN, italics: true, text: screenshot.caption })],
+      }),
+    );
+  }
+  paragraphs.push(
+    new Paragraph({
+      ...RTL_PARA,
+      children: [new TextRun({
+        ...HEBREW_RUN, italics: true, size: 20, color: '6B7280',
+        text: `(סוג משתמש: ${USER_TYPE_HE[screenshot.userType]})`,
+      })],
+    }),
+  );
+}
+
 export async function buildAndDownloadDocument(input: BuildDocumentInput): Promise<void> {
   const coverParagraphs: Paragraph[] = [
     new Paragraph({
@@ -513,11 +605,13 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
     }),
   ];
 
+  const ss = input.screenshotFiles ?? [];
+
   const allBodySections: Paragraph[] = [];
   for (const key of CHAPTER_ORDER) {
     const { content, status } = input.generatedContent[key];
     if (key === 'introduction') {
-      allBodySections.push(...buildIntroWithScreenshot(content, status, input.screenshotFiles?.[0]));
+      allBodySections.push(...buildIntroWithScreenshot(content, status, ss[0]));
     } else if (key === 'database') {
       allBodySections.push(
         ...await buildDatabaseSection(
@@ -528,22 +622,25 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
           input.diagrams.erd.status,
         ),
       );
+    } else if (key === 'systemAnalysis') {
+      const paras = buildChapterSection(key, content, status);
+      appendOptionalScreenshot(paras, ss[1]);
+      allBodySections.push(...paras);
     } else if (key === 'serverImplementation') {
-      allBodySections.push(...buildChapterSection(key, content, status));
+      const paras = buildChapterSection(key, content, status);
+      appendOptionalScreenshot(paras, ss[2]);
+      allBodySections.push(...paras);
       allBodySections.push(...buildCSharpSection(input.classes ?? []));
+    } else if (key === 'clientImplementation') {
+      const paras = buildChapterSection(key, content, status);
+      appendOptionalScreenshot(paras, ss[3]);
+      allBodySections.push(...paras);
     } else if (key === 'userGuide') {
-      allBodySections.push(...buildUserGuideWithScreenshots(content, status, input.screenshotFiles));
+      allBodySections.push(...buildUserGuideWithScreenshots(content, status, ss));
     } else {
       allBodySections.push(...buildChapterSection(key, content, status));
     }
   }
-
-  const diagramSection = await buildDiagramsSection(
-    input.diagrams.uml.mermaidCode,
-    input.diagrams.uml.status,
-    input.diagrams.erd.mermaidCode,
-    input.diagrams.erd.status,
-  );
 
   const doc = new Document({
     sections: [
@@ -554,7 +651,7 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
             margin: { top: 1440, bottom: 1440, left: 1800, right: 1800 },
           },
         },
-        children: [...coverParagraphs, ...allBodySections, ...diagramSection],
+        children: [...coverParagraphs, ...allBodySections],
       },
     ],
   });

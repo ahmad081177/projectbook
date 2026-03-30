@@ -14,19 +14,6 @@ export default function DiagramsPage() {
       <WizardHeader />
       <div className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-8">
         <div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">דיאגרמת מחלקות (UML)</h2>
-          {diagrams.uml.status === 'complete' && diagrams.uml.mermaidCode ? (
-            <pre className="bg-gray-900 text-green-300 rounded-lg p-4 text-xs overflow-x-auto whitespace-pre-wrap font-mono">
-              {diagrams.uml.mermaidCode}
-            </pre>
-          ) : (
-            <p className="text-gray-400 text-sm italic">
-              {diagrams.uml.status === 'failed' ? '⚠ לא נוצרה דיאגרמה' : 'ממתין לייצור...'}
-            </p>
-          )}
-        </div>
-
-        <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">ERD — מסד נתונים</h2>
           {diagrams.erd.status === 'complete' && diagrams.erd.mermaidCode ? (
             <pre className="bg-gray-900 text-green-300 rounded-lg p-4 text-xs overflow-x-auto whitespace-pre-wrap font-mono">

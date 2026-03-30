@@ -187,10 +187,15 @@ function classesToContext(classes: CSharpClass[]): string {
     .join('\n\n');
 }
 
-function tablesToContext(tables: DatabaseTable[]): string {
+export function tablesToContext(tables: DatabaseTable[]): string {
   return tables
     .map((t) => {
-      const cols = t.columns.map((c) => `  ${c.name}: ${c.type}${c.isPrimaryKey ? ' PK' : ''}${c.isForeignKey ? ` FK→${c.referencesTable ?? '?'}` : ''}`).join('\n');
+      if (t.columns.length === 0) {
+        return `TABLE ${t.name}: [no column info available — show table box only]`;
+      }
+      const cols = t.columns.map((c) =>
+        `  ${c.name}: ${c.type}${c.isPrimaryKey ? ' PK' : ''}${c.isForeignKey ? ` FK→${c.referencesTable ?? '?'}` : ''}`
+      ).join('\n');
       return `TABLE ${t.name}${t.description ? ` -- ${t.description}` : ''}:\n${cols}`;
     })
     .join('\n\n');
@@ -332,6 +337,9 @@ ${classesToContext(ctx.classes)}
     `${buildProjectSummary(ctx)}
 טבלאות מסד הנתונים:
 ${tablesToContext(ctx.tables)}
+
+IMPORTANT: Base your chapter ONLY on the column names listed above.
+If column info is unavailable for a table (marked "[no column info available]"), describe only that the table exists and its name — do NOT invent column names.
 כתוב פרק מסד נתונים הכולל תיאור כל טבלה, עמודותיה, והקשרים ביניהן. אורך: כ-${CHAPTER_WORD_COUNTS.database} מילים.`,
 
   serverImplementation: (ctx) =>
@@ -401,6 +409,14 @@ export async function generateErdDiagram(ctx: GenerationContext): Promise<string
   const systemPrompt = buildSystemPrompt(ctx.language);
   const userPrompt = `טבלאות:
 ${tablesToContext(ctx.tables)}
+
+STRICT RULES:
+- Use ONLY the table names and column names listed above.
+- If a table shows "[no column info available]", draw that table as an entity with NO attributes.
+- Do NOT invent, guess, or add any column names or relationships that are not explicitly listed above.
+- Do NOT add Id, CreatedAt, UpdatedAt or any other column unless it appears in the list above.
+- Only draw relationships (||--||, ||--|{) if a FK column is explicitly shown above.
+
 צור קוד Mermaid תקני ל-ERD (erDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
