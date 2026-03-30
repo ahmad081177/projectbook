@@ -129,12 +129,16 @@ export function parseAccessFile(
         name: col.name,
         type: col.type as string,
         nullable: col.nullable,
-        isPrimaryKey: false,   // mdb-reader does not expose PK metadata
-        isForeignKey: false,   // relationship data not in mdb-reader public API
+        // AutoNumber / AutoUUID columns are almost always the PK in Access databases
+        isPrimaryKey: col.autoLong || col.autoUUID,
+        isForeignKey: false,   // resolved below from MSysRelationships
         description: '',
       }));
       return { name, columns, description: '' };
     });
+
+    // Populate FK metadata from MSysRelationships system table
+    applyRelationships(reader, tables);
 
     return { source: 'access', tables };
   } catch {
@@ -150,12 +154,61 @@ export function parseAccessFile(
 }
 
 /**
+ * Reads MSysRelationships system table via mdb-reader and marks FK columns
+ * on the already-built table list. Silently skips if the table is unavailable
+ * (encrypted databases, older Jet 3 formats, etc.).
+ *
+ * Each row in MSysRelationships represents one column of a (potentially
+ * multi-column) FK relationship:
+ *   szObject           — child table  (the table holding the FK column)
+ *   szReferencedObject — parent table (the table being referenced)
+ *   szColumn           — FK column name in the child table
+ *   szReferencedColumn — corresponding PK column name in the parent table
+ */
+function applyRelationships(reader: MDBReader, tables: DatabaseTable[]): void {
+  try {
+    const rows = reader.getTable('MSysRelationships').getData();
+    for (const row of rows) {
+      const childTableName = row['szObject'] as string | null | undefined;
+      const parentTableName = row['szReferencedObject'] as string | null | undefined;
+      const fkColName = row['szColumn'] as string | null | undefined;
+      const pkColName = row['szReferencedColumn'] as string | null | undefined;
+
+      if (!childTableName || !fkColName || !parentTableName) continue;
+
+      const childTable = tables.find((t) => t.name === childTableName);
+      if (!childTable) continue;
+
+      const fkCol = childTable.columns.find((c) => c.name === fkColName);
+      if (!fkCol) continue;
+
+      fkCol.isForeignKey = true;
+      fkCol.referencesTable = parentTableName;
+      if (pkColName) fkCol.referencesColumn = pkColName;
+    }
+  } catch {
+    // MSysRelationships not accessible — FK metadata stays false
+  }
+}
+
+/**
  * Returns a human-readable relationship count placeholder.
  * (Full relationship parsing requires MSysRelationships page decoding)
  */
-export function getRelationshipCount(_buffer: ArrayBuffer): number {
-  // TODO: implement full MSysRelationships page parsing for v2
-  return 0;
+export function getRelationshipCount(buffer: ArrayBuffer): number {
+  if (!isAccessFile(buffer)) return 0;
+  try {
+    const reader = new MDBReader(Buffer.from(buffer));
+    const rows = reader.getTable('MSysRelationships').getData<{ szRelationship: string | null }>({
+      columns: ['szRelationship'],
+    });
+    // Each FK relationship spans one *or more* rows (multi-column FKs have one row
+    // per column). Count unique relationship names for the true relationship count.
+    const unique = new Set(rows.map((r) => r.szRelationship).filter(Boolean));
+    return unique.size;
+  } catch {
+    return 0;
+  }
 }
 
 export type { DatabaseSchema };
