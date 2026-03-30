@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import WizardLayout from '../../components/layout/WizardLayout';
 import Button from '../../components/ui/Button';
@@ -42,6 +42,11 @@ export default function ExportPage() {
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+
+  // Mark Export step as active in the step indicator
+  useEffect(() => {
+    useAppStore.setState({ completedStep: 6 });
+  }, []);
 
   const handleDownload = async () => {
     setIsDownloading(true);

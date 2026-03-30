@@ -127,7 +127,7 @@ async function callAzureOpenAI(
         ],
         temperature: 0.4,
         top_p: 0.85,
-        max_tokens: 8192,
+        max_completion_tokens: 8192,
       }),
     });
 
