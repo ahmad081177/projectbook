@@ -9,7 +9,7 @@ import {
   AlignmentType,
 } from 'docx';
 import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN } from './styles';
-import { mermaidToImageBuffer } from '../../utils/mermaid';
+import { mermaidToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
 import type { ChapterKey, CSharpClass, DatabaseTable } from '../../store/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -360,29 +360,6 @@ function buildIntroWithScreenshot(
 }
 
 // ─── Database section with per-table sub-sections + ERD ─────────────────
-
-/**
- * Generates a single-table erDiagram Mermaid code for a given table.
- * Used to produce a per-table screenshot in the database chapter.
- */
-function tableToSingleErDiagram(table: DatabaseTable): string {
-  if (table.columns.length === 0) {
-    return `erDiagram\n  ${table.name} {\n    string id\n  }`;
-  }
-  const fields = table.columns
-    .map((c) => {
-      const flags = [
-        c.isPrimaryKey ? 'PK' : '',
-        c.isForeignKey ? 'FK' : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-      return `    ${c.type || 'string'} ${c.name}${flags ? ' "' + flags + '"' : ''}`;
-    })
-    .join('\n');
-  return `erDiagram\n  ${table.name} {\n${fields}\n  }`;
-}
-
 async function buildDatabaseSection(
   content: string,
   status: string,
@@ -432,17 +409,16 @@ async function buildDatabaseSection(
           );
         }
 
-        // Per-table ERD screenshot after the columns list
-        const mermaidCode = tableToSingleErDiagram(table);
+        // Per-table custom diagram screenshot (FieldName | Type | Key column order)
         try {
-          const buf = await mermaidToImageBuffer(mermaidCode);
+          const buf = await tableToImageBuffer(table);
           paragraphs.push(
             new Paragraph({
               ...RTL_PARA,
               alignment: AlignmentType.CENTER,
               spacing: { before: 160, after: 160 },
               children: [
-                new ImageRun({ type: 'png', data: buf, transformation: { width: 420, height: 280 } }),
+                new ImageRun({ type: 'png', data: buf, transformation: { width: 380, height: 220 } }),
               ],
             }),
           );

@@ -100,7 +100,7 @@
   "gen.select.section.techStack": "نظرة عامة على التقنيات",
   "gen.select.section.systemAnalysis": "تحليل النظام",
   "gen.select.section.database": "قاعدة البيانات",
-  "gen.select.section.serverImplementation": "تنفيذ الخادم",
+  "gen.select.section.serverImplementation": "تنفيذ الخادم (فصول C#)",
   "gen.select.section.clientImplementation": "تنفيذ العميل",
   "gen.select.section.userGuide": "دليل المستخدم",
   "gen.select.section.reflection": "التأمل الذاتي",
@@ -108,5 +108,11 @@
   "gen.select.section.whatNext": "التطورات المستقبلية",
   "gen.select.section.appendices": "الملاحق",
   "gen.select.section.uml": "مخطط UML",
-  "gen.select.section.erd": "مخطط ERD"
+  "gen.select.section.erd": "مخطط ERD",
+  "export.checklist.title": "قائمة الفصول المطلوبة",
+  "export.optional": "(اختياري)",
+  "export.back": "→ رجوع إلى المراجعة",
+  "export.redownload": "📄 تنزيل مجددًا",
+  "export.wordHint": "افتح في Microsoft Word لإكمال الغلاف وتحريره قبل التسليم.",
+  "export.diagrams": "المخططات (UML + ERD)"
 }

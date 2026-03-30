@@ -98,7 +98,7 @@
   "gen.select.section.techStack": "סקירת טכנולוגיות",
   "gen.select.section.systemAnalysis": "ניתוח מערכת",
   "gen.select.section.database": "מסד נתונים",
-  "gen.select.section.serverImplementation": "מימוש צד שרת",
+  "gen.select.section.serverImplementation": "מימוש צד שרת (מחלקות C#)",
   "gen.select.section.clientImplementation": "מימוש צד לקוח",
   "gen.select.section.userGuide": "מדריך משתמש",
   "gen.select.section.reflection": "רפלקסיה",
@@ -106,5 +106,11 @@
   "gen.select.section.whatNext": "פיתוחים עתידיים",
   "gen.select.section.appendices": "נספחים",
   "gen.select.section.uml": "דיאגרמת UML",
-  "gen.select.section.erd": "דיאגרמת ERD"
+  "gen.select.section.erd": "דיאגרמת ERD",
+  "export.checklist.title": "רשימת פרקים נדרשים",
+  "export.optional": "(אופציונלי)",
+  "export.back": "← חזרה לסקירה",
+  "export.redownload": "📄 הורד שוב",
+  "export.wordHint": "פתח ב-Microsoft Word להשלמת שער + עריכה לפני הגשה.",
+  "export.diagrams": "דיאגרמות (UML + ERD)"
 }

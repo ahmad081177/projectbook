@@ -9,18 +9,18 @@ import { buildAndDownloadDocument } from '../../services/docBuilder';
 import { useAppStore } from '../../store';
 import type { ChapterKey } from '../../store/types';
 
-const CHECKLIST: { key: ChapterKey; label: string; required: boolean }[] = [
-  { key: 'introduction', label: 'מבוא', required: true },
-  { key: 'techStack', label: 'סקירת טכנולוגיות', required: true },
-  { key: 'systemAnalysis', label: 'ניתוח מערכת', required: true },
-  { key: 'database', label: 'מסד נתונים', required: true },
-  { key: 'serverImplementation', label: 'מימוש צד שרת', required: true },
-  { key: 'clientImplementation', label: 'מימוש צד לקוח', required: true },
-  { key: 'userGuide', label: 'מדריך משתמש', required: true },
-  { key: 'reflection', label: 'רפלקסיה', required: true },
-  { key: 'difficulties', label: 'קשיים ופתרונות', required: true },
-  { key: 'whatNext', label: 'פיתוחים עתידיים', required: true },
-  { key: 'appendices', label: 'נספחים', required: false },
+const CHECKLIST: { key: ChapterKey; required: boolean }[] = [
+  { key: 'introduction', required: true },
+  { key: 'techStack', required: true },
+  { key: 'systemAnalysis', required: true },
+  { key: 'database', required: true },
+  { key: 'serverImplementation', required: true },
+  { key: 'clientImplementation', required: true },
+  { key: 'userGuide', required: true },
+  { key: 'reflection', required: true },
+  { key: 'difficulties', required: true },
+  { key: 'whatNext', required: true },
+  { key: 'appendices', required: false },
 ];
 
 function chapterBadge(status: string): { badge: BadgeStatus; label: string } {
@@ -108,7 +108,7 @@ export default function ExportPage() {
       actions={
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => void navigate('/review/introduction')} className="flex-1">
-            ← חזרה לסקירה
+            {t('export.back')}
           </Button>
         </div>
       }
@@ -116,15 +116,15 @@ export default function ExportPage() {
       <div className="w-full max-w-lg mx-auto flex flex-col gap-6">
         {/* Compliance checklist */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-gray-800">רשימת פרקים נדרשים</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('export.checklist.title')}</h2>
           <ul className="flex flex-col gap-2">
-            {CHECKLIST.map(({ key, label, required }) => {
+            {CHECKLIST.map(({ key, required }) => {
               const { badge, label: badgeLabel } = chapterBadge(generatedContent[key].status);
               return (
                 <li key={key} className="flex items-center justify-between text-sm">
                   <span className={required ? 'text-gray-800' : 'text-gray-500'}>
-                    {label}
-                    {!required && <span className="text-xs text-gray-400 ms-1">(אופציונלי)</span>}
+                    {t(`gen.select.section.${key}`)}
+                    {!required && <span className="text-xs text-gray-400 ms-1">{t('export.optional')}</span>}
                   </span>
                   <Badge status={badge}>{badgeLabel}</Badge>
                 </li>
@@ -140,18 +140,18 @@ export default function ExportPage() {
           onClick={() => void handleDownload()}
           isLoading={isDownloading}
         >
-          {downloaded ? '📄 הורד שוב' : t('download.button')}
+          {downloaded ? t('export.redownload') : t('download.button')}
         </Button>
 
         {downloaded && (
           <p className="text-sm text-center text-gray-500">
-            פתח ב-Microsoft Word להשלמת שער + עריכה לפני הגשה.
+            {t('export.wordHint')}
           </p>
         )}
 
         {/* Diagram status */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between text-sm">
-          <span className="text-gray-700">דיאגרמות (UML + ERD)</span>
+          <span className="text-gray-700">{t('export.diagrams')}</span>
           <div className="flex gap-2">
             <Badge status={diagrams.uml.status === 'complete' ? 'success' : diagrams.uml.status === 'failed' ? 'warning' : 'idle'}>
               UML

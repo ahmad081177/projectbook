@@ -393,7 +393,12 @@ export async function generateChapter(
   ctx: GenerationContext,
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx.language);
-  const userPrompt = CHAPTER_PROMPTS[chapterKey](ctx);
+  // Prepend a strong language instruction for Arabic to prevent the AI from
+  // responding in Hebrew (since the context prompts are written in Hebrew).
+  const langPrefix = ctx.language === 'ar'
+    ? '[مهم: اكتب كامل إجابتك باللغة العربية الفصحى فقط. ممنوع استخدام العبرية.]\n\n'
+    : '';
+  const userPrompt = langPrefix + CHAPTER_PROMPTS[chapterKey](ctx);
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 
@@ -456,11 +461,18 @@ export async function generateClassDescriptions(
     return `${c.name}${methods ? ': ' + methods : ''}`;
   }).join('\n');
 
-  const langInstruction = ctx.language === 'ar'
-    ? 'اكتب الأوصاف باللغة العربية. جملة واحدة لكل فصل أو طريقة.'
-    : 'כתוב את התיאורים בעברית. משפט אחד לכל מחלקה ושיטה.';
+  const userPrompt = ctx.language === 'ar'
+    ? `[مهم: اكتب كامل إجابتك باللغة العربية الفصحى فقط.]
 
-  const userPrompt = `${langInstruction}
+اكتب وصفًا موجزًا باللغة العربية لكل فصل وطريقة. جملة واحدة أو جملتان لكل عنصر.
+
+قائمة الفصول والطرق:
+${classList}
+
+لكل فصل وطريقة، اكتب وصفًا بالتنسيق التالي (سطر واحد لكل عنصر):
+CLASS ClassName: <وصف>
+METHOD ClassName.methodName: <وصف>`
+    : `כתוב את התיאורים בעברית. משפט אחד עד שניים לכל מחלקה ושיטה.
 
 רשימת מחלקות ושיטות:
 ${classList}
