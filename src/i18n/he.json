@@ -22,6 +22,7 @@
   "step.generate": "יצירה",
   "step.review": "סקירה",
   "step.export": "ייצוא",
+  "step.goBack": "לחץ לחזרה",
   "field.name": "שם התלמיד",
   "field.apiKey": "מפתח API",
   "field.model": "דגם AI",

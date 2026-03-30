@@ -22,6 +22,7 @@
   "step.generate": "إنشاء",
   "step.review": "مراجعة",
   "step.export": "تصدير",
+  "step.goBack": "انقر للرجوع",
   "field.name": "اسم الطالب",
   "field.apiKey": "مفتاح API",
   "field.model": "نموذج AI",
