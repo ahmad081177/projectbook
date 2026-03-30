@@ -1,21 +1,16 @@
-import type { GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey } from '../store/types';
+import type { AiProvider, GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey } from '../store/types';
 import { GEMINI_API_BASE } from '../utils/constants';
 
-// Whitelist of allowed Gemini models — prevents open-ended URL construction
-const ALLOWED_MODELS: GeminiModel[] = [
-  'gemini-2.5-flash',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
-];
+// ─── Provider config ──────────────────────────────────────────────────────
 
-function assertAllowedModel(model: string): asserts model is GeminiModel {
-  if (!(ALLOWED_MODELS as string[]).includes(model)) {
-    throw new Error(`Unknown Gemini model: ${model}`);
-  }
+export interface AzureConfig {
+  endpoint: string;        // https://<resource>.openai.azure.com
+  apiKey: string;
+  deploymentName: string;  // e.g. gpt-4o
+  apiVersion: string;      // e.g. 2024-02-01
 }
 
-// ─── Core API caller ──────────────────────────────────────────────────────
+// ─── Response shapes ──────────────────────────────────────────────────────
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -24,10 +19,19 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
+interface AzureOpenAIResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+  error?: { message?: string };
+}
+
+// ─── Retry constants ──────────────────────────────────────────────────────
+
 // Retry with exponential backoff on 429 (rate-limit) responses.
 // Free-tier Gemini allows ~15 RPM; 13 chapters + 2 diagrams can hit the limit.
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 15_000; // 15 s — Gemini free-tier resets per minute
+
+// ─── Gemini caller ────────────────────────────────────────────────────────
 
 async function callGemini(
   apiKey: string,
@@ -35,8 +39,11 @@ async function callGemini(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string> {
-  assertAllowedModel(model);
-  const url = `${GEMINI_API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // Validate model name: must be non-empty and contain only safe URL chars
+  if (!model || !/^[\w./-]+$/.test(model)) {
+    throw new Error(`Invalid model name: ${model}`);
+  }
+  const url = `${GEMINI_API_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   let lastError = '';
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -70,6 +77,94 @@ async function callGemini(
   }
 
   throw new Error(lastError);
+}
+
+// ─── Azure OpenAI caller ──────────────────────────────────────────────────
+
+async function callAzureOpenAI(
+  cfg: AzureConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  // Validate endpoint: must be an https URL under openai.azure.com
+  const { endpoint, apiKey, deploymentName, apiVersion } = cfg;
+  if (!endpoint || !deploymentName || !apiVersion) {
+    throw new Error('Azure OpenAI: endpoint, deploymentName, and apiVersion are required');
+  }
+  // Security: only allow HTTPS and restrict to Azure OpenAI domain
+  let endpointUrl: URL;
+  try {
+    endpointUrl = new URL(endpoint);
+  } catch {
+    throw new Error('Azure OpenAI: invalid endpoint URL');
+  }
+  if (endpointUrl.protocol !== 'https:') {
+    throw new Error('Azure OpenAI: endpoint must use HTTPS');
+  }
+  if (!endpointUrl.hostname.endsWith('.openai.azure.com')) {
+    throw new Error('Azure OpenAI: endpoint must be under *.openai.azure.com');
+  }
+
+  // Construct the deployments URL — deployment name may contain letters, digits, hyphens
+  if (!/^[\w-]+$/.test(deploymentName)) {
+    throw new Error(`Azure OpenAI: invalid deployment name: ${deploymentName}`);
+  }
+  const safeBase = endpointUrl.origin; // strips any path/query from user input
+  const url = `${safeBase}/openai/deployments/${encodeURIComponent(deploymentName)}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`;
+
+  let lastError = '';
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.4,
+        top_p: 0.85,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (res.ok) {
+      const body = (await res.json()) as AzureOpenAIResponse;
+      return body.choices?.[0]?.message?.content ?? '';
+    }
+
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as AzureOpenAIResponse;
+      if (body.error?.message) errMsg = body.error.message;
+    } catch { /* ignore */ }
+    lastError = errMsg;
+
+    if (res.status !== 429 || attempt === MAX_RETRIES) break;
+    await new Promise((r) => setTimeout(r, RETRY_BASE_DELAY_MS * (attempt + 1)));
+  }
+
+  throw new Error(lastError);
+}
+
+// ─── Unified AI caller ────────────────────────────────────────────────────
+
+async function callAI(
+  provider: AiProvider,
+  geminiApiKey: string,
+  geminiModel: GeminiModel,
+  azureCfg: AzureConfig | null,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  if (provider === 'azure-openai') {
+    if (!azureCfg) throw new Error('Azure config missing');
+    return callAzureOpenAI(azureCfg, systemPrompt, userPrompt);
+  }
+  return callGemini(geminiApiKey, geminiModel, systemPrompt, userPrompt);
 }
 
 // ─── System prompt builder ─────────────────────────────────────────────────
@@ -109,8 +204,10 @@ export async function testGeminiConnection(
   apiKey: string,
   model: GeminiModel,
 ): Promise<{ ok: boolean; error?: string }> {
-  assertAllowedModel(model);
-  const url = `${GEMINI_API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  if (!model || !/^[\w./-]+$/.test(model)) {
+    return { ok: false, error: `Invalid model name: ${model}` };
+  }
+  const url = `${GEMINI_API_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   try {
     const res = await fetch(url, {
@@ -133,11 +230,24 @@ export async function testGeminiConnection(
   }
 }
 
+export async function testAzureConnection(
+  cfg: AzureConfig,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await callAzureOpenAI(cfg, 'You are a helpful assistant.', 'Hi');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Azure connection failed' };
+  }
+}
+
 // ─── Chapter generators ────────────────────────────────────────────────────
 
 export interface GenerationContext {
+  provider: AiProvider;
   apiKey: string;
   model: GeminiModel;
+  azureCfg: AzureConfig | null;
   language: Language;
   studentName: string;
   projectType: ProjectType | null;
@@ -276,7 +386,7 @@ export async function generateChapter(
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx.language);
   const userPrompt = CHAPTER_PROMPTS[chapterKey](ctx);
-  return callGemini(ctx.apiKey, ctx.model, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 
 // ─── Diagram generators (Mermaid) ─────────────────────────────────────────
@@ -286,7 +396,7 @@ export async function generateUmlDiagram(ctx: GenerationContext): Promise<string
   const userPrompt = `מחלקות:
 ${classesToContext(ctx.classes)}
 צור קוד Mermaid תקני לדיאגרמת מחלקות (classDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
-  return callGemini(ctx.apiKey, ctx.model, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 
 export async function generateErdDiagram(ctx: GenerationContext): Promise<string> {
@@ -294,7 +404,8 @@ export async function generateErdDiagram(ctx: GenerationContext): Promise<string
   const userPrompt = `טבלאות:
 ${tablesToContext(ctx.tables)}
 צור קוד Mermaid תקני ל-ERD (erDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
-  return callGemini(ctx.apiKey, ctx.model, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
+
 
 

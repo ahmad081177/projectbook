@@ -102,8 +102,15 @@ export default function GenerationPage() {
 
     const run = async () => {
       const ctx: GenerationContext = {
+        provider: store.aiProvider,
         apiKey: store.geminiApiKey,
         model: store.geminiModel,
+        azureCfg: store.aiProvider === 'azure-openai' ? {
+          endpoint: store.azureEndpoint,
+          apiKey: store.azureApiKey,
+          deploymentName: store.azureDeploymentName,
+          apiVersion: store.azureApiVersion,
+        } : null,
         language: store.language,
         studentName: store.studentName,
         projectType: store.projectType,
@@ -221,8 +228,15 @@ export default function GenerationPage() {
     if (failedKeys.length === 0) return;
     const store2 = useAppStore.getState();
     const ctx: GenerationContext = {
+      provider: store2.aiProvider,
       apiKey: store2.geminiApiKey,
       model: store2.geminiModel,
+      azureCfg: store2.aiProvider === 'azure-openai' ? {
+        endpoint: store2.azureEndpoint,
+        apiKey: store2.azureApiKey,
+        deploymentName: store2.azureDeploymentName,
+        apiVersion: store2.azureApiVersion,
+      } : null,
       language: store2.language,
       studentName: store2.studentName,
       projectType: store2.projectType,

@@ -15,7 +15,7 @@ const testConnection = vi.spyOn(geminiService, 'testGeminiConnection');
 
 describe('SetupPage', () => {
   beforeEach(() => {
-    useAppStore.setState({ studentName: '', geminiApiKey: '', completedStep: 0 });
+    useAppStore.setState({ studentName: '', geminiApiKey: '', aiProvider: 'gemini', completedStep: 0 });
     mockNavigate.mockClear();
     testConnection.mockReset();
   });
@@ -27,7 +27,7 @@ describe('SetupPage', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/שם/)).toBeInTheDocument();
-    expect(screen.getByText(/Gemini API/)).toBeInTheDocument();
+    expect(screen.getByText(/Gemini AI/)).toBeInTheDocument();
     expect(screen.getByText(/דגם/)).toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe('SetupPage', () => {
       </MemoryRouter>,
     );
     fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Test Student' } });
-    fireEvent.change(screen.getByLabelText('מפתח Gemini API'), { target: { value: 'AIzaXXXX' } });
+    fireEvent.change(screen.getByLabelText('מפתח API'), { target: { value: 'AIzaXXXX' } });
     fireEvent.click(screen.getByText('בדוק חיבור'));
     await waitFor(() => {
       expect(screen.getByText(/החיבור הצליח/)).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('SetupPage', () => {
       </MemoryRouter>,
     );
     fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Test Student' } });
-    fireEvent.change(screen.getByLabelText('מפתח Gemini API'), { target: { value: 'bad-key' } });
+    fireEvent.change(screen.getByLabelText('מפתח API'), { target: { value: 'bad-key' } });
     fireEvent.click(screen.getByText('בדוק חיבור'));
     await waitFor(() => {
       expect(screen.getByText('Invalid API key')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('SetupPage', () => {
       </MemoryRouter>,
     );
     fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Avi Cohen' } });
-    fireEvent.change(screen.getByLabelText('מפתח Gemini API'), { target: { value: 'AIzaXXXX' } });
+    fireEvent.change(screen.getByLabelText('מפתח API'), { target: { value: 'AIzaXXXX' } });
     fireEvent.click(screen.getByText('בדוק חיבור'));
     await waitFor(() => expect(screen.getByText(/הצליח/)).toBeInTheDocument());
 

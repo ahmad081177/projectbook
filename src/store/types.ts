@@ -2,11 +2,17 @@
 
 export type Language = 'he' | 'ar';
 export type ProjectType = 'blazor' | 'wpf' | 'winforms' | 'android' | 'other';
-export type GeminiModel =
-  | 'gemini-2.5-flash'
-  | 'gemini-1.5-pro'
-  | 'gemini-1.5-flash'
-  | 'gemini-2.0-flash';
+export type AiProvider = 'gemini' | 'azure-openai';
+
+/** Well-known Gemini model IDs — typed as string to also allow custom names. */
+export type GeminiModel = string;
+
+export const KNOWN_GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-pro',
+  'gemini-1.5-flash',
+] as const;
 export type ChapterKey =
   | 'introduction'
   | 'techStack'
@@ -113,8 +119,14 @@ export interface DiagramData {
 
 export interface OnboardingSlice {
   language: Language;
-  geminiApiKey: string; // never persisted to storage (NFR6)
+  aiProvider: AiProvider;
+  geminiApiKey: string;        // never persisted to storage (NFR6)
   geminiModel: GeminiModel;
+  // Azure OpenAI fields
+  azureEndpoint: string;       // e.g. https://<resource>.openai.azure.com
+  azureApiKey: string;         // never persisted to storage
+  azureDeploymentName: string; // e.g. gpt-4o
+  azureApiVersion: string;     // e.g. 2024-02-01
   studentName: string;
   projectType: ProjectType | null;
   completedStep: number; // -1 = wizard not started

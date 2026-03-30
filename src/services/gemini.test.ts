@@ -28,8 +28,10 @@ function makeTable(name: string): DatabaseTable {
 
 function makeCtx(classes: CSharpClass[], overrides: Partial<GenerationContext> = {}): GenerationContext {
   return {
+    provider: 'gemini',
     apiKey: 'test-key',
     model: 'gemini-2.0-flash',
+    azureCfg: null,
     language: 'he',
     studentName: 'ישראל ישראלי',
     projectType: 'other',

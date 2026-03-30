@@ -71,8 +71,15 @@ export default function ReviewPage() {
     setIsRegenerating(true);
     const s = useAppStore.getState();
     const ctx: GenerationContext = {
+      provider: s.aiProvider,
       apiKey: s.geminiApiKey,
       model: s.geminiModel,
+      azureCfg: s.aiProvider === 'azure-openai' ? {
+        endpoint: s.azureEndpoint,
+        apiKey: s.azureApiKey,
+        deploymentName: s.azureDeploymentName,
+        apiVersion: s.azureApiVersion,
+      } : null,
       language: s.language,
       studentName: s.studentName,
       projectType: s.projectType,

@@ -5,15 +5,14 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { useTranslation } from '../../i18n';
-import { testGeminiConnection } from '../../services/gemini';
+import { testAzureConnection, testGeminiConnection, type AzureConfig } from '../../services/gemini';
 import { useAppStore } from '../../store';
-import type { GeminiModel } from '../../store/types';
+import type { AiProvider, GeminiModel } from '../../store/types';
+import { KNOWN_GEMINI_MODELS } from '../../store/types';
 
-const MODEL_OPTIONS: { value: GeminiModel; label: string }[] = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (recommended)' },
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+const GEMINI_MODEL_OPTIONS = [
+  ...KNOWN_GEMINI_MODELS.map((m) => ({ value: m, label: m })),
+  { value: '__custom__', label: 'Custom model...' },
 ];
 
 type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
@@ -23,34 +22,47 @@ export default function SetupPage() {
   const navigate = useNavigate();
 
   const storedName = useAppStore((s) => s.studentName);
+  const storedProvider = useAppStore((s) => s.aiProvider);
   const storedModel = useAppStore((s) => s.geminiModel);
+  const storedGeminiKey = useAppStore((s) => s.geminiApiKey);
+  const storedAzureEndpoint = useAppStore((s) => s.azureEndpoint);
+  const storedAzureKey = useAppStore((s) => s.azureApiKey);
+  const storedAzureDeployment = useAppStore((s) => s.azureDeploymentName);
+  const storedAzureApiVersion = useAppStore((s) => s.azureApiVersion);
 
   const [name, setName] = useState(storedName);
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [model, setModel] = useState<GeminiModel>(storedModel);
+  const [provider, setProvider] = useState<AiProvider>(storedProvider);
+
+  // Gemini state
+  const isKnownModel = (KNOWN_GEMINI_MODELS as readonly string[]).includes(storedModel);
+  const [geminiKey, setGeminiKey] = useState(storedGeminiKey);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [modelSelect, setModelSelect] = useState<string>(isKnownModel ? storedModel : '__custom__');
+  const [customModel, setCustomModel] = useState<string>(isKnownModel ? '' : storedModel);
+
+  // Azure state
+  const [azureEndpoint, setAzureEndpoint] = useState(storedAzureEndpoint);
+  const [azureKey, setAzureKey] = useState(storedAzureKey);
+  const [showAzureKey, setShowAzureKey] = useState(false);
+  const [azureDeployment, setAzureDeployment] = useState(storedAzureDeployment);
+  const [azureApiVersion, setAzureApiVersion] = useState(storedAzureApiVersion || '2024-02-01');
+
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [connectionError, setConnectionError] = useState('');
-
   const [nameError, setNameError] = useState('');
-  const [keyError, setKeyError] = useState('');
+
+  const effectiveModel: GeminiModel = modelSelect === '__custom__' ? customModel : modelSelect;
 
   const canProceed = connectionStatus === 'success' && name.trim().length > 0;
 
-  const validate = () => {
+  const resetConnection = () => {
+    if (connectionStatus !== 'idle') setConnectionStatus('idle');
+  };
+
+  const validate = (): boolean => {
     let valid = true;
-    if (!name.trim()) {
-      setNameError(t('error.required'));
-      valid = false;
-    } else {
-      setNameError('');
-    }
-    if (!apiKey.trim()) {
-      setKeyError(t('error.required'));
-      valid = false;
-    } else {
-      setKeyError('');
-    }
+    if (!name.trim()) { setNameError(t('error.required')); valid = false; }
+    else setNameError('');
     return valid;
   };
 
@@ -59,23 +71,52 @@ export default function SetupPage() {
     setConnectionStatus('testing');
     setConnectionError('');
 
-    const result = await testGeminiConnection(apiKey, model);
-    if (result.ok) {
-      setConnectionStatus('success');
+    if (provider === 'gemini') {
+      const result = await testGeminiConnection(geminiKey, effectiveModel);
+      if (result.ok) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+        setConnectionError(result.error ?? t('error.connection'));
+      }
     } else {
-      setConnectionStatus('error');
-      setConnectionError(result.error ?? t('error.connection'));
+      const cfg: AzureConfig = {
+        endpoint: azureEndpoint,
+        apiKey: azureKey,
+        deploymentName: azureDeployment,
+        apiVersion: azureApiVersion,
+      };
+      const result = await testAzureConnection(cfg);
+      if (result.ok) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+        setConnectionError(result.error ?? t('error.connection'));
+      }
     }
   };
 
   const handleNext = () => {
     if (!canProceed) return;
-    useAppStore.setState({
-      studentName: name.trim(),
-      geminiApiKey: apiKey,
-      geminiModel: model,
-      completedStep: 1,
-    });
+    if (provider === 'gemini') {
+      useAppStore.setState({
+        studentName: name.trim(),
+        aiProvider: 'gemini',
+        geminiApiKey: geminiKey,
+        geminiModel: effectiveModel,
+        completedStep: 1,
+      });
+    } else {
+      useAppStore.setState({
+        studentName: name.trim(),
+        aiProvider: 'azure-openai',
+        azureEndpoint,
+        azureApiKey: azureKey,
+        azureDeploymentName: azureDeployment,
+        azureApiVersion,
+        completedStep: 1,
+      });
+    }
     void navigate('/extract/code');
   };
 
@@ -97,60 +138,136 @@ export default function SetupPage() {
           autoFocus
         />
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Input
-                label={t('field.apiKey')}
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  if (connectionStatus !== 'idle') setConnectionStatus('idle');
-                }}
-                error={keyError}
-                autoComplete="off"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowKey((v) => !v)}
-              className="mb-0.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md"
-              aria-label={showKey ? 'Hide key' : 'Show key'}
-            >
-              {showKey ? '🙈' : '👁'}
-            </button>
+        {/* Provider toggle */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-gray-700">{t('field.provider')}</span>
+          <div className="flex rounded-md border border-gray-300 overflow-hidden">
+            {(['gemini', 'azure-openai'] as AiProvider[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => { setProvider(p); resetConnection(); }}
+                className={[
+                  'flex-1 py-2 text-sm font-medium transition-colors',
+                  provider === p
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50',
+                ].join(' ')}
+              >
+                {p === 'gemini' ? t('provider.gemini') : t('provider.azure')}
+              </button>
+            ))}
           </div>
-
-          {/* Connection test result */}
-          {connectionStatus === 'success' && (
-            <p className="text-sm text-green-600 font-medium">✓ {t('connection.success')}</p>
-          )}
-          {connectionStatus === 'error' && (
-            <p className="text-sm text-red-600">{connectionError || t('error.connection')}</p>
-          )}
-
-          <Button
-            variant="secondary"
-            size="sm"
-            isLoading={connectionStatus === 'testing'}
-            onClick={() => void handleTest()}
-            className="self-start"
-          >
-            {t('connection.test')}
-          </Button>
         </div>
 
-        <Select
-          label={t('field.model')}
-          options={MODEL_OPTIONS}
-          value={model}
-          onChange={(e) => {
-            setModel(e.target.value as GeminiModel);
-            if (connectionStatus === 'success') setConnectionStatus('idle');
-          }}
-        />
+        {provider === 'gemini' ? (
+          <>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Input
+                    label={t('field.apiKey')}
+                    type={showGeminiKey ? 'text' : 'password'}
+                    value={geminiKey}
+                    onChange={(e) => { setGeminiKey(e.target.value); resetConnection(); }}
+                    autoComplete="off"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGeminiKey((v) => !v)}
+                  className="mb-0.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md"
+                  aria-label={showGeminiKey ? 'Hide key' : 'Show key'}
+                >
+                  {showGeminiKey ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Select
+                label={t('field.model')}
+                options={GEMINI_MODEL_OPTIONS}
+                value={modelSelect}
+                onChange={(e) => { setModelSelect(e.target.value); resetConnection(); }}
+              />
+              {modelSelect === '__custom__' && (
+                <Input
+                  label={t('field.customModel')}
+                  placeholder="e.g. gemini-2.5-pro or gpt-4o"
+                  value={customModel}
+                  onChange={(e) => { setCustomModel(e.target.value); resetConnection(); }}
+                  autoComplete="off"
+                />
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <Input
+              label={t('field.azureEndpoint')}
+              placeholder="https://your-resource.openai.azure.com"
+              value={azureEndpoint}
+              onChange={(e) => { setAzureEndpoint(e.target.value); resetConnection(); }}
+              autoComplete="off"
+            />
+
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  label={t('field.apiKey')}
+                  type={showAzureKey ? 'text' : 'password'}
+                  value={azureKey}
+                  onChange={(e) => { setAzureKey(e.target.value); resetConnection(); }}
+                  autoComplete="off"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAzureKey((v) => !v)}
+                className="mb-0.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md"
+                aria-label={showAzureKey ? 'Hide key' : 'Show key'}
+              >
+                {showAzureKey ? '🙈' : '👁'}
+              </button>
+            </div>
+
+            <Input
+              label={t('field.azureDeployment')}
+              placeholder="e.g. gpt-4o"
+              value={azureDeployment}
+              onChange={(e) => { setAzureDeployment(e.target.value); resetConnection(); }}
+              autoComplete="off"
+            />
+
+            <Input
+              label={t('field.azureApiVersion')}
+              value={azureApiVersion}
+              onChange={(e) => { setAzureApiVersion(e.target.value); resetConnection(); }}
+              autoComplete="off"
+            />
+          </>
+        )}
+
+        {/* Connection test result */}
+        {connectionStatus === 'success' && (
+          <p className="text-sm text-green-600 font-medium">✓ {t('connection.success')}</p>
+        )}
+        {connectionStatus === 'error' && (
+          <p className="text-sm text-red-600">{connectionError || t('error.connection')}</p>
+        )}
+
+        <Button
+          variant="secondary"
+          size="sm"
+          isLoading={connectionStatus === 'testing'}
+          onClick={() => void handleTest()}
+          className="self-start"
+        >
+          {t('connection.test')}
+        </Button>
       </div>
     </WizardLayout>
   );
 }
+
