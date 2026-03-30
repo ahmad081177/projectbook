@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface FileDropZoneProps {
   onFiles: (files: File[]) => void;
@@ -21,6 +21,18 @@ export default function FileDropZone({
 }: FileDropZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // React 19 sets webkitdirectory as a DOM boolean property ('' → false).
+  // setAttribute is the only reliable way to activate the folder picker.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (directory) {
+      el.setAttribute('webkitdirectory', '');
+    } else {
+      el.removeAttribute('webkitdirectory');
+    }
+  }, [directory]);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -64,10 +76,6 @@ export default function FileDropZone({
         accept={accept}
         multiple={multiple}
         onChange={(e) => handleFiles(e.target.files)}
-        // directory picker attributes (non-standard but widely supported)
-        {...(directory
-          ? { webkitdirectory: '', mozdirectory: '' }
-          : {})}
         aria-hidden="true"
         tabIndex={-1}
       />

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import WizardLayout from '../../components/layout/WizardLayout';
 import Button from '../../components/ui/Button';
@@ -34,6 +34,9 @@ export default function CodeUploadPage() {
   const [exclusions, setExclusions] = useState<Set<string>>(new Set());
   const [isParsing, setIsParsing] = useState(false);
 
+  // Accumulates file data across multiple folder picks so all folders are parsed together.
+  const accumulatedRef = useRef<{ path: string; content: string }[]>([]);
+
   const canProceed = !!parsed && projectType !== '';
 
   const handleFiles = useCallback(async (files: File[]) => {
@@ -42,16 +45,24 @@ export default function CodeUploadPage() {
 
     setIsParsing(true);
     try {
-      const fileData = await Promise.all(
+      const newFileData = await Promise.all(
         csFiles.map(async (f) => ({
           path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name,
           content: await f.text(),
         })),
       );
 
-      const classes = parseCSharpFiles(fileData);
+      // Merge with previously accumulated files; deduplicate by path (new wins).
+      const existingPaths = new Set(accumulatedRef.current.map((fd) => fd.path));
+      const merged = [
+        ...accumulatedRef.current,
+        ...newFileData.filter((fd) => !existingPaths.has(fd.path)),
+      ];
+      accumulatedRef.current = merged;
+
+      const classes = parseCSharpFiles(merged);
       const folders = new Set(
-        fileData.map(({ path }) => {
+        merged.map(({ path }) => {
           const parts = path.split(/[\\/]/);
           return parts.length > 1 ? parts.slice(0, -1).join('/') : '';
         }),
@@ -64,7 +75,7 @@ export default function CodeUploadPage() {
           .map((c) => c.filePath),
       );
       setExclusions(autoExcluded);
-      setParsed({ classes, fileCount: csFiles.length, folderCount: folders.size });
+      setParsed({ classes, fileCount: merged.length, folderCount: folders.size });
     } finally {
       setIsParsing(false);
     }
