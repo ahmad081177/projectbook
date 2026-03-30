@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import WizardHeader from '../../components/layout/WizardHeader';
+import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
 import ProgressBar from '../../components/ui/ProgressBar';
 import { useTranslation } from '../../i18n';
@@ -59,6 +60,8 @@ export default function GenerationPage() {
   const navigate = useNavigate();
 
   const store = useAppStore.getState();
+  // Only skip the splash if generation is already in-flight (navigated away mid-run)
+  const [isStarted, setIsStarted] = useState(() => useAppStore.getState().isGenerating);
   const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t));
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
@@ -97,7 +100,7 @@ export default function GenerationPage() {
   };
 
   useEffect(() => {
-    if (started.current) return;
+    if (!isStarted || started.current) return;
     started.current = true;
 
     const run = async () => {
@@ -221,7 +224,7 @@ export default function GenerationPage() {
     useAppStore.setState({ isGenerating: true });
     void run();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isStarted]);
 
   // Retry only the chapters that failed (re-uses the same ctx)
   const retryFailed = async () => {
@@ -274,6 +277,42 @@ export default function GenerationPage() {
       setTimeout(() => void navigate('/review/introduction'), 500);
     }
   };
+
+  // ── Ready splash (shown before generation starts) ──────────────────────
+  if (!isStarted) {
+    const classCount = store.classes.filter((c) => !c.isExcluded).length;
+    const tableCount = store.dbSchema?.tables?.length ?? 0;
+    const ssCount = store.screenshots.length;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <WizardHeader />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-md w-full flex flex-col items-center gap-6 text-center">
+            <div className="text-5xl">📖</div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">{t('gen.title.ready')}</h1>
+              <p className="text-sm text-gray-500 mt-2">{t('gen.subtitle.ready')}</p>
+            </div>
+            <div className="flex flex-col gap-2 text-sm text-gray-600 w-full bg-gray-50 rounded-xl p-4 text-start">
+              <span>📁 {classCount} {t('gen.ready.classes')}</span>
+              <span>🗄️ {tableCount} {t('gen.ready.tables')}</span>
+              <span>🖼️ {ssCount} {t('gen.ready.screenshots')}</span>
+            </div>
+            <Button fullWidth size="lg" onClick={() => setIsStarted(true)}>
+              {t('gen.start')}
+            </Button>
+            <button
+              type="button"
+              onClick={() => void navigate('/extract/screenshots')}
+              className="text-sm text-gray-400 hover:text-gray-600 underline"
+            >
+              {t('nav.back')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
