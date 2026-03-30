@@ -91,5 +91,21 @@
   "gen.task.readCode": "يقرأ كودك...",
   "gen.task.readDb": "يقرأ قاعدة البيانات...",
   "gen.task.uml": "ينشئ مخطط UML...",
-  "gen.task.erd": "ينشئ مخطط ERD..."
+  "gen.task.erd": "ينشئ مخطط ERD...",
+  "gen.select.title": "اختر الفصول للإنشاء",
+  "gen.select.all": "تحديد الكل",
+  "gen.select.none": "إلغاء التحديد",
+  "gen.select.section.introduction": "المقدمة",
+  "gen.select.section.techStack": "نظرة عامة على التقنيات",
+  "gen.select.section.systemAnalysis": "تحليل النظام",
+  "gen.select.section.database": "قاعدة البيانات",
+  "gen.select.section.serverImplementation": "تنفيذ الخادم",
+  "gen.select.section.clientImplementation": "تنفيذ العميل",
+  "gen.select.section.userGuide": "دليل المستخدم",
+  "gen.select.section.reflection": "التأمل الذاتي",
+  "gen.select.section.difficulties": "الصعوبات والحلول",
+  "gen.select.section.whatNext": "التطورات المستقبلية",
+  "gen.select.section.appendices": "الملاحق",
+  "gen.select.section.uml": "مخطط UML",
+  "gen.select.section.erd": "مخطط ERD"
 }

@@ -89,5 +89,21 @@
   "gen.task.readCode": "קורא את הקוד שלך...",
   "gen.task.readDb": "קורא את מסד הנתונים...",
   "gen.task.uml": "יוצר דיאגרמת UML...",
-  "gen.task.erd": "יוצר ERD..."
+  "gen.task.erd": "יוצר ERD...",
+  "gen.select.title": "בחר פרקים ליצירה",
+  "gen.select.all": "סמן הכל",
+  "gen.select.none": "נקה הכל",
+  "gen.select.section.introduction": "מבוא",
+  "gen.select.section.techStack": "סקירת טכנולוגיות",
+  "gen.select.section.systemAnalysis": "ניתוח מערכת",
+  "gen.select.section.database": "מסד נתונים",
+  "gen.select.section.serverImplementation": "מימוש צד שרת",
+  "gen.select.section.clientImplementation": "מימוש צד לקוח",
+  "gen.select.section.userGuide": "מדריך משתמש",
+  "gen.select.section.reflection": "רפלקסיה",
+  "gen.select.section.difficulties": "קשיים ופתרונות",
+  "gen.select.section.whatNext": "פיתוחים עתידיים",
+  "gen.select.section.appendices": "נספחים",
+  "gen.select.section.uml": "דיאגרמת UML",
+  "gen.select.section.erd": "דיאגרמת ERD"
 }

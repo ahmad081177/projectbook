@@ -34,17 +34,21 @@ const CHAPTER_ORDER: ChapterKey[] = [
   'appendices',
 ];
 
-function buildTasks(t: (key: string) => string): GenerationTask[] {
+const ALL_SECTION_IDS = [...CHAPTER_ORDER, 'uml', 'erd'];
+
+function buildTasks(t: (key: string) => string, selected: Set<string>): GenerationTask[] {
   return [
     { id: 'read-code', label: t('gen.task.readCode'), status: 'pending' },
     { id: 'read-db', label: t('gen.task.readDb'), status: 'pending' },
-    ...CHAPTER_ORDER.map((key) => ({
-      id: key,
-      label: `${t(`gen.chapter.${key}`)}...`,
-      status: 'pending' as const,
-    })),
-    { id: 'uml', label: t('gen.task.uml'), status: 'pending' },
-    { id: 'erd', label: t('gen.task.erd'), status: 'pending' },
+    ...CHAPTER_ORDER
+      .filter((key) => selected.has(key))
+      .map((key) => ({
+        id: key,
+        label: `${t(`gen.chapter.${key}`)}...`,
+        status: 'pending' as const,
+      })),
+    ...(selected.has('uml') ? [{ id: 'uml', label: t('gen.task.uml'), status: 'pending' as const }] : []),
+    ...(selected.has('erd') ? [{ id: 'erd', label: t('gen.task.erd'), status: 'pending' as const }] : []),
   ];
 }
 
@@ -62,17 +66,47 @@ export default function GenerationPage() {
   const store = useAppStore.getState();
   // Only skip the splash if generation is already in-flight (navigated away mid-run)
   const [isStarted, setIsStarted] = useState(() => useAppStore.getState().isGenerating);
-  const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t));
+  const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t, new Set(ALL_SECTION_IDS)));
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
   const [isDone, setIsDone] = useState(false);
   const [isStopped, setIsStopped] = useState(false);
   const [previewSnippet, setPreviewSnippet] = useState<{ label: string; text: string } | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
+  // Section selection state — drives the splash checkbox UI
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(ALL_SECTION_IDS));
+  // Ref keeps the latest selection accessible inside the generation useEffect closure
+  const selectedRef = useRef<Set<string>>(new Set(ALL_SECTION_IDS));
   const started = useRef(false);
   const abortRef = useRef(false);
   const startTimeRef = useRef<number>(0);
   const previewScrollRef = useRef<HTMLDivElement>(null);
+
+  const toggleSection = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      selectedRef.current = next;
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    const next = new Set(ALL_SECTION_IDS);
+    setSelected(next);
+    selectedRef.current = next;
+  };
+
+  const deselectAll = () => {
+    const next = new Set<string>();
+    setSelected(next);
+    selectedRef.current = next;
+  };
+
+  const handleStart = () => {
+    setTasks(buildTasks(t, selectedRef.current));
+    setIsStarted(true);
+  };
 
   const completedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'failed').length;
   const successCount = tasks.filter((t) => t.status === 'complete').length;
@@ -137,10 +171,25 @@ export default function GenerationPage() {
 
       // Step 2: Generate each chapter sequentially with a 1-second gap
       // to stay under Gemini free-tier rate limit (~15 RPM).
+      const sel = selectedRef.current;
+
+      // Mark non-selected chapters as skipped up front
+      for (const key of CHAPTER_ORDER) {
+        if (!sel.has(key)) {
+          useAppStore.setState((s) => ({
+            generatedContent: {
+              ...s.generatedContent,
+              [key]: { content: s.generatedContent[key]?.content ?? '', status: 'skipped' },
+            },
+          }));
+        }
+      }
+
       let failedCount = 0;
       const localFailedKeys: ChapterKey[] = [];
       for (const key of CHAPTER_ORDER) {
         if (abortRef.current) break;
+        if (!sel.has(key)) continue;
         updateTask(key, 'generating');
         useAppStore.setState((s) => ({
           generatedContent: {
@@ -177,37 +226,42 @@ export default function GenerationPage() {
         if (!abortRef.current) await new Promise((r) => setTimeout(r, 1000));
       }
 
-      // Step 3: Generate diagrams
-      updateTask('uml', 'generating');
-      try {
-        const umlCode = await generateUmlDiagram(ctx);
-        useAppStore.setState((s) => ({
-          diagrams: { ...s.diagrams, uml: { mermaidCode: umlCode, status: 'complete' } },
-        }));
-        updateTask('uml', 'complete');
-      } catch {
-        useAppStore.setState((s) => ({
-          diagrams: { ...s.diagrams, uml: { mermaidCode: '', status: 'failed' } },
-        }));
-        updateTask('uml', 'failed');
+      // Step 3: Generate diagrams (only if selected)
+      if (sel.has('uml')) {
+        updateTask('uml', 'generating');
+        try {
+          const umlCode = await generateUmlDiagram(ctx);
+          useAppStore.setState((s) => ({
+            diagrams: { ...s.diagrams, uml: { mermaidCode: umlCode, status: 'complete' } },
+          }));
+          updateTask('uml', 'complete');
+        } catch {
+          useAppStore.setState((s) => ({
+            diagrams: { ...s.diagrams, uml: { mermaidCode: '', status: 'failed' } },
+          }));
+          updateTask('uml', 'failed');
+        }
       }
 
-      updateTask('erd', 'generating');
-      try {
-        const erdCode = await generateErdDiagram(ctx);
-        useAppStore.setState((s) => ({
-          diagrams: { ...s.diagrams, erd: { mermaidCode: erdCode, status: 'complete' } },
-        }));
-        updateTask('erd', 'complete');
-      } catch {
-        useAppStore.setState((s) => ({
-          diagrams: { ...s.diagrams, erd: { mermaidCode: '', status: 'failed' } },
-        }));
-        updateTask('erd', 'failed');
+      if (sel.has('erd')) {
+        updateTask('erd', 'generating');
+        try {
+          const erdCode = await generateErdDiagram(ctx);
+          useAppStore.setState((s) => ({
+            diagrams: { ...s.diagrams, erd: { mermaidCode: erdCode, status: 'complete' } },
+          }));
+          updateTask('erd', 'complete');
+        } catch {
+          useAppStore.setState((s) => ({
+            diagrams: { ...s.diagrams, erd: { mermaidCode: '', status: 'failed' } },
+          }));
+          updateTask('erd', 'failed');
+        }
       }
 
       // Complete
-      setHasAllFailed(failedCount === CHAPTER_ORDER.length);
+      const selectedChapters = CHAPTER_ORDER.filter((k) => sel.has(k));
+      setHasAllFailed(failedCount > 0 && failedCount === selectedChapters.length);
       setFailedKeys(localFailedKeys);
       setIsDone(true);
       if (!abortRef.current) {
@@ -287,7 +341,7 @@ export default function GenerationPage() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <WizardHeader />
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 max-w-md w-full flex flex-col items-center gap-6 text-center">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 max-w-lg w-full flex flex-col items-center gap-5 text-center">
             <div className="text-5xl">📖</div>
             <div>
               <h1 className="text-2xl font-bold text-gray-800">{t('gen.title.ready')}</h1>
@@ -298,7 +352,37 @@ export default function GenerationPage() {
               <span>🗄️ {tableCount} {t('gen.ready.tables')}</span>
               <span>🖼️ {ssCount} {t('gen.ready.screenshots')}</span>
             </div>
-            <Button fullWidth size="lg" onClick={() => setIsStarted(true)}>
+
+            {/* Section selector */}
+            <div className="w-full border border-gray-200 rounded-xl p-4 text-start">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-700">{t('gen.select.title')}</span>
+                <div className="flex gap-2">
+                  <button type="button" onClick={selectAll}
+                    className="text-xs text-blue-600 hover:underline">{t('gen.select.all')}</button>
+                  <span className="text-gray-300">|</span>
+                  <button type="button" onClick={deselectAll}
+                    className="text-xs text-gray-500 hover:underline">{t('gen.select.none')}</button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {ALL_SECTION_IDS.map((id) => (
+                  <label key={id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(id)}
+                      onChange={() => toggleSection(id)}
+                      className="w-4 h-4 rounded accent-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 truncate">
+                      {t(`gen.select.section.${id}`)}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Button fullWidth size="lg" onClick={handleStart} disabled={selected.size === 0}>
               {t('gen.start')}
             </Button>
             <button
