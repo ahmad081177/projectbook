@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 const CSP = [
   "default-src 'self'",
@@ -14,6 +15,7 @@ const CSP = [
 
 export default defineConfig({
   plugins: [
+    nodePolyfills({ include: ['buffer', 'stream', 'util'], globals: { Buffer: true } }),
     react(),
     {
       name: 'inject-csp',

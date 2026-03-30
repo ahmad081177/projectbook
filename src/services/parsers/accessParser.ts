@@ -1,4 +1,5 @@
 import type { DatabaseSchema, DatabaseTable } from '../../store/types';
+import MDBReader from 'mdb-reader';
 
 // Jet database magic bytes (Access 97–2019 all share this signature)
 const JET_MAGIC = [0x00, 0x01, 0x00, 0x00];
@@ -107,8 +108,9 @@ function isPrintableAscii(byte: number): boolean {
 }
 
 /**
- * Parses an Access DB file buffer into a DatabaseSchema.
- * Returns null if the file does not appear to be a valid Jet database.
+ * Parses an Access DB file buffer into a DatabaseSchema using mdb-reader.
+ * Falls back to heuristic table-name extraction if mdb-reader cannot parse the file.
+ * Returns null if the buffer does not appear to be a valid Jet database.
  */
 export function parseAccessFile(
   _filename: string,
@@ -116,19 +118,35 @@ export function parseAccessFile(
 ): DatabaseSchema | null {
   if (!isAccessFile(buffer)) return null;
 
-  const tableNames = extractTableNames(buffer);
+  // --- Primary path: use mdb-reader for accurate column metadata ---
+  try {
+    const reader = new MDBReader(Buffer.from(buffer));
+    const tableNames = reader.getTableNames({ normalTables: true, systemTables: false, linkedTables: false });
 
-  // Build schema with table names only (column info requires full page parsing)
-  const tables: DatabaseTable[] = tableNames.map((name) => ({
-    name,
-    columns: [], // populated by user or by Gemini vision on screenshots
-    description: '',
-  }));
+    const tables: DatabaseTable[] = tableNames.map((name) => {
+      const table = reader.getTable(name);
+      const columns = table.getColumns().map((col) => ({
+        name: col.name,
+        type: col.type as string,
+        nullable: col.nullable,
+        isPrimaryKey: false,   // mdb-reader does not expose PK metadata
+        isForeignKey: false,   // relationship data not in mdb-reader public API
+        description: '',
+      }));
+      return { name, columns, description: '' };
+    });
 
-  return {
-    source: 'access',
-    tables: tables.length > 0 ? tables : [],
-  };
+    return { source: 'access', tables };
+  } catch {
+    // --- Fallback: heuristic scan (covers edge cases mdb-reader can't parse) ---
+    const tableNames = extractTableNames(buffer);
+    const tables: DatabaseTable[] = tableNames.map((name) => ({
+      name,
+      columns: [],
+      description: '',
+    }));
+    return { source: 'access', tables: tables.length > 0 ? tables : [] };
+  }
 }
 
 /**
