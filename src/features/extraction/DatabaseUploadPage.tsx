@@ -75,9 +75,14 @@ export default function DatabaseUploadPage() {
   return (
     <WizardLayout
       actions={
-        <Button fullWidth onClick={handleNext} disabled={!canProceed}>
-          {t('nav.next')}
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => void navigate('/extract/code')} className="flex-1">
+            {t('nav.back')}
+          </Button>
+          <Button fullWidth onClick={handleNext} disabled={!canProceed} className="flex-1">
+            {t('nav.next')}
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col gap-6">

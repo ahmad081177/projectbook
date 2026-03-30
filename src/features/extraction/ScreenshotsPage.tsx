@@ -115,6 +115,9 @@ export default function ScreenshotsPage() {
       <WizardLayout
         actions={
           <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => void navigate('/extract/database')} className="flex-1">
+              {t('nav.back')}
+            </Button>
             <Button variant="secondary" onClick={handleSkip} className="flex-1">
               {t('nav.skip')}
             </Button>

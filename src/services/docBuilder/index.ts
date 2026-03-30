@@ -170,6 +170,41 @@ function buildChapterSection(key: ChapterKey, content: string, status: string): 
   return paragraphs;
 }
 
+// Intro chapter — appends the first screenshot (if available) after the text
+function buildIntroWithScreenshot(
+  content: string,
+  status: string,
+  firstScreenshot: { arrayBuffer: ArrayBuffer; screenName: string } | undefined,
+): Paragraph[] {
+  const paragraphs = buildChapterSection('introduction', content, status);
+  if (firstScreenshot) {
+    try {
+      paragraphs.push(
+        new Paragraph({ ...RTL_PARA, spacing: { before: 240 }, children: [] }),
+        new Paragraph({
+          ...RTL_PARA,
+          alignment: AlignmentType.CENTER,
+          children: [
+            new ImageRun({
+              type: 'png',
+              data: firstScreenshot.arrayBuffer,
+              transformation: { width: 420, height: 280 },
+            }),
+          ],
+        }),
+        new Paragraph({
+          ...RTL_PARA,
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({ ...HEBREW_RUN, italics: true, size: 18, color: '6B7280', text: firstScreenshot.screenName }),
+          ],
+        }),
+      );
+    } catch { /* skip image if it fails */ }
+  }
+  return paragraphs;
+}
+
 async function buildDiagramsSection(
   umlCode: string,
   umlStatus: string,
@@ -257,6 +292,13 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
   ];
 
   const chapterSections: Paragraph[] = CHAPTER_ORDER.flatMap((key) => {
+    if (key === 'introduction') {
+      return buildIntroWithScreenshot(
+        input.generatedContent[key].content,
+        input.generatedContent[key].status,
+        input.screenshotFiles?.[0],
+      );
+    }
     if (key === 'userGuide') {
       return buildUserGuideWithScreenshots(
         input.generatedContent[key].content,

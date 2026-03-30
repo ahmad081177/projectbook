@@ -77,11 +77,24 @@ export default function GenerationPage() {
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
   const [isDone, setIsDone] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const started = useRef(false);
   const abortRef = useRef(false);
+  const startTimeRef = useRef<number>(0);
 
   const completedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'failed').length;
+  const successCount = tasks.filter((t) => t.status === 'complete').length;
   const progress = Math.round((completedCount / tasks.length) * 100);
+
+  // Elapsed timer — ticks every second while generating
+  useEffect(() => {
+    if (isDone) return;
+    startTimeRef.current = Date.now();
+    const id = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isDone]);
 
   const updateTask = (id: string, status: GenerationTask['status']) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
@@ -261,6 +274,15 @@ export default function GenerationPage() {
                 : 'עובר לסקירה...'
               : 'אנא המתן, הפעולה עשויה לקחת מספר דקות'}
           </p>
+        </div>
+
+        {/* Stats bar */}
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>הושלמו: {successCount} / {tasks.length}</span>
+          {!isDone && (
+            <span>זמן: {Math.floor(elapsedSec / 60).toString().padStart(2, '0')}:{(elapsedSec % 60).toString().padStart(2, '0')}</span>
+          )}
+          <span>{progress}%</span>
         </div>
 
         <ProgressBar value={progress} />
