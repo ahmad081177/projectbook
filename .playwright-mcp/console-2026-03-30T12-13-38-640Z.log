@@ -1,0 +1,12 @@
+[ 3076683ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/features/extraction/ScreenshotsPage.tsx?t=1774875895306:0
+[ 3076683ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
+[ 3134033ms] [ERROR] [vite] SyntaxError: Identifier 'buildScreenshot' has already been declared @ http://localhost:5173/@vite/client:904
+[ 3134033ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
+[ 3147199ms] [ERROR] [vite] SyntaxError: Identifier 'buildScreenshot' has already been declared @ http://localhost:5173/@vite/client:904
+[ 3147199ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
+[ 3147317ms] [ERROR] [vite] SyntaxError: Identifier 'buildScreenshot' has already been declared @ http://localhost:5173/@vite/client:904
+[ 3147317ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
+[ 3147338ms] [ERROR] [vite] SyntaxError: Identifier 'buildScreenshot' has already been declared @ http://localhost:5173/@vite/client:904
+[ 3147338ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
+[ 3147341ms] [ERROR] [vite] SyntaxError: Identifier 'buildScreenshot' has already been declared @ http://localhost:5173/@vite/client:904
+[ 3147341ms] [ERROR] [vite] Failed to reload /src/features/extraction/ScreenshotsPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:904
