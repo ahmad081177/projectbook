@@ -1,7 +1,7 @@
 // All types for the entire application. Other files import from here.
 
 export type Language = 'he' | 'ar';
-export type ProjectType = 'blazor' | 'wpf' | 'winforms' | 'android' | 'other';
+export type ProjectType = 'aspnet' | 'blazor' | 'wpf' | 'winforms' | 'android' | 'other';
 export type AiProvider = 'gemini' | 'azure-openai';
 
 /** Well-known Gemini model IDs — typed as string to also allow custom names. */
@@ -93,13 +93,24 @@ export interface ClassField {
   accessModifier: string;
 }
 
+export type ScreenshotChapter = 'introduction' | 'systemAnalysis' | 'serverImplementation' | 'clientImplementation' | 'userGuide';
+
 export interface Screenshot {
   id: string;
   caption: string;
   screenName: string;
   userType: 'admin' | 'regular' | 'both';
+  chapterTag: ScreenshotChapter;
   thumbnailUrl: string;
   file: File | null; // null after page refresh — File is not serialisable
+}
+
+export interface ProjectFile {
+  filePath: string;
+  fileName: string;
+  extension: string;
+  content: string;
+  isExcluded: boolean;
 }
 
 export interface GeneratedChapter {
@@ -135,6 +146,7 @@ export interface OnboardingSlice {
 export interface ExtractionSlice {
   dbSchema: DatabaseSchema | null;
   classes: CSharpClass[];
+  projectFiles: ProjectFile[];
   screenshots: Screenshot[];
   extractionErrors: Record<string, string>;
 }

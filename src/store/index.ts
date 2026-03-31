@@ -26,6 +26,7 @@ export const useAppStore = create<AppState>()(
         completedStep: state.completedStep,
         dbSchema: state.dbSchema,
         classes: state.classes, // serialisable — no File fields
+        projectFiles: state.projectFiles, // serialisable — plain text
         // Strip File objects from screenshots — they are not serialisable
         screenshots: state.screenshots.map((s) => ({ ...s, file: null })),
         extractionErrors: state.extractionErrors,

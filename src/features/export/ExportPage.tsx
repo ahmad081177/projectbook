@@ -41,6 +41,7 @@ export default function ExportPage() {
   const screenshots = useAppStore((s) => s.screenshots);
   const dbSchema = useAppStore((s) => s.dbSchema);
   const classes = useAppStore((s) => s.classes);
+  const projectFiles = useAppStore((s) => s.projectFiles);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
@@ -61,6 +62,7 @@ export default function ExportPage() {
             screenName: s.screenName,
             caption: s.caption,
             userType: s.userType,
+            chapterTag: s.chapterTag,
           })),
       );
       await buildAndDownloadDocument({
@@ -71,6 +73,7 @@ export default function ExportPage() {
         screenshotFiles,
         tables: dbSchema?.tables ?? [],
         classes,
+        projectFiles,
       });
       setDownloaded(true);
       useAppStore.setState({ exportStatus: 'done', lastExportDate: new Date().toISOString() });

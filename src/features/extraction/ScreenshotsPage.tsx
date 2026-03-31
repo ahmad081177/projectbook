@@ -17,6 +17,7 @@ function buildScreenshot(file: File, index: number): Screenshot {
     caption: '',
     screenName: file.name.replace(/\.[^.]+$/, ''),
     userType: 'both',
+    chapterTag: 'userGuide',
     thumbnailUrl: URL.createObjectURL(file),
     file,
   };
@@ -165,7 +166,7 @@ export default function ScreenshotsPage() {
                     onClick={clearAllScreenshots}
                     className="text-xs text-red-500 hover:text-red-700 underline"
                   >
-                    🗑️ נקה הכל
+                    🗑️ {t('upload.screenshots.clearAll')}
                   </button>
                   <Button variant="secondary" onClick={openAnnotateButton}>
                     {t('carousel.annotate')}

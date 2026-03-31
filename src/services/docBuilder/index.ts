@@ -9,8 +9,8 @@ import {
   AlignmentType,
 } from 'docx';
 import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN, LTR_PARA } from './styles';
-import { mermaidToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
-import type { ChapterKey, CSharpClass, DatabaseTable } from '../../store/types';
+import { classToImageBuffer, fileToImageBuffer, mermaidToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
+import type { ChapterKey, CSharpClass, DatabaseTable, ProjectFile, ScreenshotChapter } from '../../store/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -39,6 +39,7 @@ interface LangStrings {
   coverTitle: string;
   coverProject: string;
   coverMeta: string;
+  projectFilesSection: string;
 }
 
 const STRINGS: Record<Lang, LangStrings> = {
@@ -65,6 +66,7 @@ const STRINGS: Record<Lang, LangStrings> = {
     coverTitle: 'ספר פרויקט',
     coverProject: '[שם הפרויקט]',
     coverMeta: '[שנת לימודים] | [בית ספר] | [שם המורה]',
+    projectFilesSection: 'קבצי פרויקט נוספים',
   },
   ar: {
     dbTableStructure: 'هيكل الجداول',
@@ -89,6 +91,7 @@ const STRINGS: Record<Lang, LangStrings> = {
     coverTitle: 'كتاب المشروع',
     coverProject: '[اسم المشروع]',
     coverMeta: '[السنة الدراسية] | [المدرسة] | [اسم المعلم]',
+    projectFilesSection: 'ملفات المشروع الإضافية',
   },
 };
 
@@ -105,9 +108,11 @@ export interface BuildDocumentInput {
     screenName: string;
     caption: string;
     userType: 'admin' | 'regular' | 'both';
+    chapterTag?: ScreenshotChapter;
   }>;
   tables?: DatabaseTable[];
   classes?: CSharpClass[];
+  projectFiles?: ProjectFile[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -186,10 +191,12 @@ export function markdownToDocxParagraphs(text: string): Paragraph[] {
       const level = h4 ? 4 : h3 ? 3 : 2;
       const headingLevel = level === 2 ? HeadingLevel.HEADING_2 : level === 3 ? HeadingLevel.HEADING_3 : HeadingLevel.HEADING_4;
       const runStyle = level === 2 ? HEADING2_RUN : level === 3 ? HEADING3_RUN : HEADING4_RUN;
+      // Strip **...** markers — headings are already styled; raw asterisks would show literally
+      const headingText = matched[1].replace(/\*\*([^*]*)\*\*/g, '$1');
       paragraphs.push(new Paragraph({
         ...RTL_PARA,
         heading: headingLevel,
-        children: [new TextRun({ ...runStyle, text: matched[1] })],
+        children: [new TextRun({ ...runStyle, text: headingText })],
       }));
       continue;
     }
@@ -501,7 +508,7 @@ function codeLineParagraph(text: string): Paragraph {
   });
 }
 
-function classBlock(cls: CSharpClass, lang: Lang): Paragraph[] {
+async function classBlock(cls: CSharpClass, lang: Lang): Promise<Paragraph[]> {
   const S = STRINGS[lang];
   const paras: Paragraph[] = [];
 
@@ -526,6 +533,25 @@ function classBlock(cls: CSharpClass, lang: Lang): Paragraph[] {
   // Class description from xmlDocComment (AI-generated or from source); skip if empty
   const classDesc = cls.xmlDocComment?.trim();
   if (classDesc) paras.push(rtlParagraph(classDesc));
+
+  // Code image (VS Code Dark+ canvas render)
+  try {
+    const img = await classToImageBuffer(cls);
+    paras.push(
+      new Paragraph({
+        ...LTR_PARA,
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 160, after: 160 },
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: img.data,
+            transformation: { width: img.docxWidth, height: img.docxHeight },
+          }),
+        ],
+      }),
+    );
+  } catch { /* skip image on render failure — plain text below still renders */ }
 
   // Properties & fields as code lines
   const members = [
@@ -560,15 +586,58 @@ function classBlock(cls: CSharpClass, lang: Lang): Paragraph[] {
   return paras;
 }
 
-function buildCSharpSection(classes: CSharpClass[], lang: Lang): Paragraph[] {
+async function buildCSharpSection(classes: CSharpClass[], lang: Lang): Promise<Paragraph[]> {
   const visible = classes.filter((c) => !c.isExcluded);
   if (visible.length === 0) return [];
 
+  const classParas = await Promise.all(visible.map((cls) => classBlock(cls, lang)));
   return [
     pageBreak(),
     chapterHeading(STRINGS[lang].csClasses),
-    ...visible.flatMap((cls) => classBlock(cls, lang)),
+    ...classParas.flat(),
   ];
+}
+
+// ─── Non-C# Project Files section ─────────────────────────────────────
+
+async function buildProjectFilesSection(files: ProjectFile[], lang: Lang): Promise<Paragraph[]> {
+  const visible = files.filter((f) => !f.isExcluded);
+  if (visible.length === 0) return [];
+
+  const paras: Paragraph[] = [
+    pageBreak(),
+    chapterHeading(STRINGS[lang].projectFilesSection),
+  ];
+
+  for (const file of visible) {
+    paras.push(chapterHeading(file.fileName, 2));
+
+    try {
+      const img = await fileToImageBuffer(file);
+      paras.push(
+        new Paragraph({
+          ...LTR_PARA,
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 160, after: 160 },
+          children: [
+            new ImageRun({
+              type: 'png',
+              data: img.data,
+              transformation: { width: img.docxWidth, height: img.docxHeight },
+            }),
+          ],
+        }),
+      );
+    } catch {
+      // Fallback: show first lines as plain text code
+      const preview = file.content.split('\n').slice(0, 30);
+      for (const line of preview) {
+        paras.push(codeLineParagraph(line));
+      }
+    }
+  }
+
+  return paras;
 }
 
 // ─── Public API: build & download ────────────────────────────────────────
@@ -665,13 +734,18 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
 
   const ss = input.screenshotFiles ?? [];
 
+  // Tag-based screenshot distribution: group by chapterTag
+  type SSFile = (typeof ss)[number];
+  const ssBy = (tag: ScreenshotChapter): SSFile[] => ss.filter((s) => (s.chapterTag ?? 'userGuide') === tag);
+
   const allBodySections: Paragraph[] = [];
   for (const key of CHAPTER_ORDER) {
     const { content, status } = input.generatedContent[key];
-    // Completely omit chapters the user chose not to generate
-    if (status === 'skipped') continue;
+    // Completely omit chapters the user chose not to generate, and always omit appendices
+    if (status === 'skipped' || key === 'appendices') continue;
     if (key === 'introduction') {
-      allBodySections.push(...buildIntroWithScreenshot(content, status, ss[0], lang));
+      const introSS = ssBy('introduction');
+      allBodySections.push(...buildIntroWithScreenshot(content, status, introSS[0], lang));
     } else if (key === 'database') {
       allBodySections.push(
         ...await buildDatabaseSection(
@@ -685,22 +759,27 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
       );
     } else if (key === 'systemAnalysis') {
       const paras = buildChapterSection(key, content, status, lang);
-      appendOptionalScreenshot(paras, ss[1], lang);
+      for (const s of ssBy('systemAnalysis')) appendOptionalScreenshot(paras, s, lang);
       allBodySections.push(...paras);
     } else if (key === 'serverImplementation') {
       const paras = buildChapterSection(key, content, status, lang);
-      appendOptionalScreenshot(paras, ss[2], lang);
+      for (const s of ssBy('serverImplementation')) appendOptionalScreenshot(paras, s, lang);
       allBodySections.push(...paras);
       // Only add C# block when this chapter was actually generated
       if (status === 'complete' && (input.classes ?? []).length > 0) {
-        allBodySections.push(...buildCSharpSection(input.classes ?? [], lang));
+        allBodySections.push(...await buildCSharpSection(input.classes ?? [], lang));
+      }
+      // Non-C# project files (.aspx, .config, .js, etc.)
+      if (status === 'complete' && (input.projectFiles ?? []).length > 0) {
+        allBodySections.push(...await buildProjectFilesSection(input.projectFiles ?? [], lang));
       }
     } else if (key === 'clientImplementation') {
       const paras = buildChapterSection(key, content, status, lang);
-      appendOptionalScreenshot(paras, ss[3], lang);
+      for (const s of ssBy('clientImplementation')) appendOptionalScreenshot(paras, s, lang);
       allBodySections.push(...paras);
     } else if (key === 'userGuide') {
-      allBodySections.push(...buildUserGuideWithScreenshots(content, status, ss, lang));
+      const guideSS = ssBy('userGuide');
+      allBodySections.push(...buildUserGuideWithScreenshots(content, status, guideSS.length > 0 ? guideSS : undefined, lang));
     } else {
       allBodySections.push(...buildChapterSection(key, content, status, lang));
     }

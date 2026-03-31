@@ -39,10 +39,7 @@ async function callGemini(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string> {
-  // Validate model name: must be non-empty and contain only safe URL chars
-  if (!model || !/^[\w./-]+$/.test(model)) {
-    throw new Error(`Invalid model name: ${model}`);
-  }
+  if (!model) throw new Error('Gemini model name is required');
   const url = `${GEMINI_API_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   let lastError = '';
@@ -105,10 +102,7 @@ async function callAzureOpenAI(
     throw new Error('Azure OpenAI: endpoint must be under *.openai.azure.com');
   }
 
-  // Construct the deployments URL — deployment name may contain letters, digits, hyphens
-  if (!/^[\w-]+$/.test(deploymentName)) {
-    throw new Error(`Azure OpenAI: invalid deployment name: ${deploymentName}`);
-  }
+  // Deployment name is free-form — only require it to be non-empty (validated above)
   const safeBase = endpointUrl.origin; // strips any path/query from user input
   const url = `${safeBase}/openai/deployments/${encodeURIComponent(deploymentName)}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`;
 
@@ -169,9 +163,9 @@ async function callAI(
 
 function buildSystemPrompt(language: Language): string {
   if (language === 'ar') {
-    return `أنت مساعد كتابة محترف يساعد طلاب المدارس الثانوية في إسرائيل على كتابة كتاب مشروع هندسة البرمجيات باللغة العربية الفصحى الرسمية. اكتب بأسلوب أكاديمي بصيغة الغائب في زمن المضارع. لا تستخدم الكلمات الإنجليزية إلا إذا كانت مصطلحات تقنية. نسّق الإخراج باستخدام عناوين (## للقسم، ### للقسم الفرعي)، وقوائم نقطية (- للعنصر)، و**تمييز غامق** للمصطلحات المهمة.`;
+    return `أنت مساعد لطلاب المدارس الثانوية في إسرائيل يكتبون كتاب مشروع هندسة البرمجيات. اكتب بلغة عربية بسيطة وواضحة تناسب المراهق — ليس أسلوباً أكاديمياً أو متكلفاً. استخدم جملاً قصيرة وكلمات شائعة. لا تستخدم الكلمات الإنجليزية إلا إذا كانت مصطلحات تقنية. **هيكل كل قسم:** فقرة افتتاحية قصيرة (2-3 جمل) ثم قائمة نقطية بـ - لكل عنصر. استخدم ## للقسم، ### للقسم الفرعي، و**تمييز غامق** للمصطلحات الأساسية.`;
   }
-  return `אתה עוזר כתיבה מקצועי המסייע לתלמידי תיכון בישראל לכתוב את ספר הפרויקט שלהם בהנדסת תוכנה בעברית פורמלית. כתוב אקדמית בגוף שלישי בזמן הווה. אל תשתמש במילים באנגלית אלא אם כן הן מונחים טכניים. פרמט את הפלט עם כותרות (## לסעיף, ### לתת-סעיף), רשימות תבליטים (- לפריט), ו-**הדגשה** למונחים חשובים.`;
+  return `אתה עוזר לתלמידי תיכון בישראל הכותבים ספר פרויקט בהנדסת תוכנה. כתוב בעברית פשוטה, ברורה ומובנת לבני נוער — לא אקדמית ולא מלאכותית. השתמש במשפטים קצרים ובמילים נפוצות. אל תשתמש במילים באנגלית אלא אם הן מונחים טכניים. **מבנה כל קטע:** פסקת פתיחה קצרה (2-3 משפטים) ואחריה רשימת נקודות עם - לכל פריט. השתמש ב-## לסעיף, ### לתת-סעיף, ו-**הדגשה** למונחים מרכזיים.`;
 }
 
 // ─── Context builders ──────────────────────────────────────────────────────
@@ -209,9 +203,7 @@ export async function testGeminiConnection(
   apiKey: string,
   model: GeminiModel,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!model || !/^[\w./-]+$/.test(model)) {
-    return { ok: false, error: `Invalid model name: ${model}` };
-  }
+  if (!model) return { ok: false, error: 'Gemini model name is required' };
   const url = `${GEMINI_API_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   try {
@@ -277,24 +269,38 @@ function detectTechStack(classes: CSharpClass[]): string {
 // ─── Project summary builder ───────────────────────────────────────────────
 
 export function buildProjectSummary(ctx: GenerationContext): string {
+  const ar = ctx.language === 'ar';
   const top5 = ctx.classes
     .filter((c) => !c.isExcluded)
     .slice(0, 5)
     .map((c) => c.name)
-    .join(', ') || 'לא זוהו';
+    .join(', ') || (ar ? 'لم يُحدد' : 'לא זוהו');
 
   const techStack = detectTechStack(ctx.classes);
 
   const ptLabels: Record<string, string> = {
-    blazor: 'Blazor', wpf: 'WPF', winforms: 'WinForms', android: 'Android', other: 'אחר',
+    aspnet: 'ASP.NET Web Application', blazor: 'Blazor', wpf: 'WPF', winforms: 'WinForms', android: 'Android',
+    other: ar ? 'أخرى' : 'אחר',
   };
-  const ptLabel = ctx.projectType ? (ptLabels[ctx.projectType] ?? 'אחר') : 'לא ידוע';
+  const ptLabel = ctx.projectType
+    ? (ptLabels[ctx.projectType] ?? (ar ? 'أخرى' : 'אחר'))
+    : (ar ? 'غير معروف' : 'לא ידוע');
 
-  const tableNames = ctx.tables.map((t) => t.name).join(', ') || 'אין';
+  const tableNames = ctx.tables.map((t) => t.name).join(', ') || (ar ? 'لا يوجد' : 'אין');
   const screenshotNames = ctx.screenshots.length > 0
     ? ctx.screenshots.map((s) => s.screenName).join(', ')
-    : 'אין';
+    : (ar ? 'لا يوجد' : 'אין');
 
+  if (ar) {
+    return `── تفاصيل المشروع ──
+اسم الطالب: ${ctx.studentName}
+نوع المشروع: ${ptLabel} (${techStack})
+الفصول الرئيسية: ${top5}
+قاعدة البيانات: ${ctx.tables.length} جداول (${tableNames})
+لقطات الشاشة: ${ctx.screenshots.length} (${screenshotNames})
+──────────────────
+`;
+  }
   return `── פרטי הפרויקט ──
 שם הסטודנט: ${ctx.studentName}
 סוג פרויקט: ${ptLabel} (${techStack})
@@ -320,72 +326,132 @@ const CHAPTER_WORD_COUNTS: Record<ChapterKey, number> = {
 };
 
 const CHAPTER_PROMPTS: Record<ChapterKey, (ctx: GenerationContext) => string> = {
-  introduction: (ctx) =>
-    `${buildProjectSummary(ctx)}
-כתוב פרק מבוא לספר הפרויקט. תאר את מטרת הפרויקט, קהל היעד ותרומתו. אורך: כ-${CHAPTER_WORD_COUNTS.introduction} מילים.`,
+  introduction: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+اكتب فصل المقدمة لكتاب المشروع. اشرح هدف المشروع، الفئة المستهدفة، وما يقدمه.
+الهيكل المطلوب: فقرة افتتاحية قصيرة من 2-3 جمل ثم نقاط رئيسية (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.introduction} كلمة.`
+    : `${buildProjectSummary(ctx)}
+כתוב פרק מבוא לספר הפרויקט. תאר את מטרת הפרויקט, קהל היעד ותרומתו.
+מבנה חובה: פסקת פתיחה קצרה של 2-3 משפטים → ואחריה נקודות עיקריות (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.introduction} מילים.`,
 
-  techStack: (ctx) =>
-    `${buildProjectSummary(ctx)}
-תאר את ערימת הטכנולוגיות בפרויקט: שפות תכנות, פריימוורקים, ספריות וכלים בהם נעשה שימוש.
-הסבר מדוע נבחרו טכנולוגיות אלו ומהם יתרונותיהן. אורך: כ-${CHAPTER_WORD_COUNTS.techStack} מילים.`,
+  techStack: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+اشرح التقنيات المستخدمة في المشروع: اللغات، الأطر، المكتبات والأدوات.
+الهيكل المطلوب: فقرة قصيرة من 2-3 جمل كمقدمة ثم نقطة لكل تقنية (ما هي + لماذا اختيرت). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.techStack} كلمة.`
+    : `${buildProjectSummary(ctx)}
+תאר את הטכנולוגיות בפרויקט: שפות, פריימוורקים, ספריות וכלים.
+מבנה חובה: פסקה קצרה של 2-3 משפטים כהקדמה → ואחריה נקודה לכל טכנולוגיה (מה זה + למה נבחר). אורך כולל: כ-${CHAPTER_WORD_COUNTS.techStack} מילים.`,
 
-  systemAnalysis: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  systemAnalysis: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+هيكل النظام:
+${classesToContext(ctx.classes)}
+اكتب فصل تحليل النظام يشمل: الأهداف، المتطلبات الوظيفية وغير الوظيفية، والبنية العامة.
+الهيكل المطلوب: فقرة قصيرة من 2-3 جمل كمقدمة ثم نقاط للمتطلبات والأهداف (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.systemAnalysis} كلمة.`
+    : `${buildProjectSummary(ctx)}
 מבנה המערכת:
 ${classesToContext(ctx.classes)}
-כתוב פרק ניתוח מערכת הכולל: מטרות, דרישות פונקציונליות ואי-פונקציונליות, ומבנה כללי. אורך: כ-${CHAPTER_WORD_COUNTS.systemAnalysis} מילים.`,
+כתוב פרק ניתוח מערכת הכולל: מטרות, דרישות פונקציונליות ואי-פונקציונליות, ומבנה כללי.
+מבנה חובה: פסקה קצרה של 2-3 משפטים כהקדמה → ואחריה נקודות לדרישות ולמטרות (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.systemAnalysis} מילים.`,
 
-  database: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  database: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+جداول قاعدة البيانات:
+${tablesToContext(ctx.tables)}
+
+IMPORTANT: Base your chapter ONLY on the column names listed above.
+If column info is unavailable for a table (marked "[no column info available]"), describe only that the table exists and its name — do NOT invent column names.
+اكتب فصل قاعدة البيانات يشمل وصف كل جدول، أعمدته، والعلاقات بينها.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقطة لكل جدول/علاقة (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.database} كلمة.`
+    : `${buildProjectSummary(ctx)}
 טבלאות מסד הנתונים:
 ${tablesToContext(ctx.tables)}
 
 IMPORTANT: Base your chapter ONLY on the column names listed above.
 If column info is unavailable for a table (marked "[no column info available]"), describe only that the table exists and its name — do NOT invent column names.
-כתוב פרק מסד נתונים הכולל תיאור כל טבלה, עמודותיה, והקשרים ביניהן. אורך: כ-${CHAPTER_WORD_COUNTS.database} מילים.`,
+כתוב פרק מסד נתונים הכולל תיאור כל טבלה, עמודותיה, והקשרים ביניהן.
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודה לכל טבלה/קשר (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.database} מילים.`,
 
-  serverImplementation: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  serverImplementation: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+فصول جانب الخادم/المنطق التجاري:
+${classesToContext(ctx.classes.filter((c) => !c.isInterface))}
+اكتب فصل تنفيذ الخادم يشمل وصف المنطق التجاري والفصول الرئيسية.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقطة لكل فصل/مكون (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.serverImplementation} كلمة.`
+    : `${buildProjectSummary(ctx)}
 מחלקות צד שרת/לוגיקה עסקית:
 ${classesToContext(ctx.classes.filter((c) => !c.isInterface))}
-כתוב פרק מימוש צד שרת הכולל תיאור היגיון עסקי ומחלקות עיקריות. אורך: כ-${CHAPTER_WORD_COUNTS.serverImplementation} מילים.`,
+כתוב פרק מימוש צד שרת הכולל תיאור היגיון עסקי ומחלקות עיקריות.
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודה לכל מחלקה/רכיב (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.serverImplementation} מילים.`,
 
-  clientImplementation: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  clientImplementation: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+فصول واجهة المستخدم:
+${classesToContext(ctx.classes)}
+اكتب فصل تنفيذ العميل يشمل وصف واجهة المستخدم ومكوناتها الرئيسية.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقطة لكل شاشة/مكون (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.clientImplementation} كلمة.`
+    : `${buildProjectSummary(ctx)}
 מחלקות ממשק משתמש:
 ${classesToContext(ctx.classes)}
-כתוב פרק מימוש צד לקוח הכולל תיאור ממשק המשתמש ורכיביו העיקריים. אורך: כ-${CHAPTER_WORD_COUNTS.clientImplementation} מילים.`,
+כתוב פרק מימוש צד לקוח הכולל תיאור ממשק המשתמש ורכיביו העיקריים.
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודה לכל מסך/רכיב (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.clientImplementation} מילים.`,
 
   userGuide: (ctx) => {
+    if (ctx.language === 'ar') {
+      const ssContext = ctx.screenshots.length > 0
+        ? `\nلقطات الشاشة المتاحة:\n${ctx.screenshots.map((s) => `- ${s.screenName}: ${s.caption || 'بدون وصف'} (${s.userType === 'admin' ? 'مدير' : s.userType === 'regular' ? 'مستخدم' : 'مدير ومستخدم'})`).join('\n')}`
+        : '\nلا توجد لقطات شاشة — اكتب دليلاً عاماً.';
+      return `${buildProjectSummary(ctx)}${ssContext}\nاكتب دليل المستخدم يشمل تعليمات الاستخدام لكل شاشة ولكل نوع مستخدم.\nالهيكل المطلوب: فقرة قصيرة ثم نقطة لكل شاشة/إجراء (- لكل نقطة). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.userGuide} كلمة.`;
+    }
     const ssContext = ctx.screenshots.length > 0
       ? `\nצילומי מסך זמינים:\n${ctx.screenshots.map((s) => `- ${s.screenName}: ${s.caption || 'ללא תיאור'} (${s.userType === 'admin' ? 'מנהל' : s.userType === 'regular' ? 'משתמש' : 'מנהל ומשתמש'})`).join('\n')}`
       : '\nאין צילומי מסך — כתוב מדריך כללי.';
-    return `${buildProjectSummary(ctx)}${ssContext}\nכתוב מדריך משתמש הכולל הוראות שימוש מפורטות לכל מסך וכל סוג משתמש. אורך: כ-${CHAPTER_WORD_COUNTS.userGuide} מילים.`;
+    return `${buildProjectSummary(ctx)}${ssContext}\nכתוב מדריך משתמש הכולל הוראות שימוש לכל מסך וכל סוג משתמש.\nמבנה חובה: פסקה קצרה → ואחריה נקודה לכל מסך/פעולה (- לכל נקודה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.userGuide} מילים.`;
   },
 
-  reflection: (ctx) =>
-    `${buildProjectSummary(ctx)}
-כמחבר הפרויקט, כתוב פרק רפלקסיה אישית הכולל: מה למדת, מה היה מאתגר, ומה היית עושה אחרת. אורך: כ-${CHAPTER_WORD_COUNTS.reflection} מילים.`,
+  reflection: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+بوصفك مؤلف المشروع، اكتب فصل التأمل الذاتي يشمل: ما تعلمته، ما كان صعباً، وما كنت ستفعله بشكل مختلف.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقاط (ما تعلمته / ما كان صعباً / ما كنت سأغيره). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.reflection} كلمة.`
+    : `${buildProjectSummary(ctx)}
+כמחבר הפרויקט, כתוב פרק רפלקסיה אישית הכולל: מה למדת, מה היה מאתגר, ומה היית עושה אחרת.
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודות (מה למדתי / מה היה קשה / מה הייתי משנה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.reflection} מילים.`,
 
-  difficulties: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  difficulties: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+اشرح 3 إلى 5 صعوبات تقنية واجهتها أثناء تطوير المشروع.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقطة لكل صعوبة (المشكلة / الحل / الدرس المستفاد). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.difficulties} كلمة.`
+    : `${buildProjectSummary(ctx)}
 תאר 3 עד 5 קשיים טכניים שנתקלת בהם בפיתוח הפרויקט.
-עבור כל קושי: תאר את הבעיה, כיצד נפתרה, ומה נלמד ממנה. אורך: כ-${CHAPTER_WORD_COUNTS.difficulties} מילים.`,
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודה לכל קושי (הבעיה / הפתרון / המסקנה). אורך כולל: כ-${CHAPTER_WORD_COUNTS.difficulties} מילים.`,
 
-  whatNext: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  whatNext: (ctx) => ctx.language === 'ar'
+    ? `${buildProjectSummary(ctx)}
+اقترح 3 إلى 5 تحسينات مستقبلية واقعية يمكن تنفيذها في المشروع لاحقاً.
+الهيكل المطلوب: فقرة افتتاحية قصيرة ثم نقطة لكل تحسين (ما هو / قيمته للمستخدم / ما يحتاجه). الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.whatNext} كلمة.`
+    : `${buildProjectSummary(ctx)}
 הצע 3 עד 5 שיפורים עתידיים ריאליסטיים שניתן לממש בהמשך הפרויקט.
-עבור כל שיפור: תאר אותו, מהו ערכו למשתמש, ומה נדרש לממשו. אורך: כ-${CHAPTER_WORD_COUNTS.whatNext} מילים.`,
+מבנה חובה: פסקת פתיחה קצרה → ואחריה נקודה לכל שיפור (מה הוא / ערכו למשתמש / מה נדרש). אורך כולל: כ-${CHAPTER_WORD_COUNTS.whatNext} מילים.`,
 
-  appendices: (ctx) =>
-    `${buildProjectSummary(ctx)}
+  appendices: (ctx) => {
+    const methodNames = ctx.classes
+      .filter((c) => !c.isExcluded)
+      .flatMap((c) => c.methods.filter((m) => m.isExplainInAppendix))
+      .map((m) => m.name)
+      .join(', ') || (ctx.language === 'ar' ? 'لم تُحدد طرق' : 'לא סומנו שיטות');
+    if (ctx.language === 'ar') {
+      return `${buildProjectSummary(ctx)}
+الفصول للملحق (الطرق المعقدة):
+${methodNames}
+اكتب ملحقاً قصيراً يشرح الطرق المعقدة (إن وُجدت).
+الهيكل المطلوب: فقرة قصيرة ثم نقطة لكل طريقة. الطول الكلي: حوالي ${CHAPTER_WORD_COUNTS.appendices} كلمة.`;
+    }
+    return `${buildProjectSummary(ctx)}
 מחלקות ל-Appendix (שיטות מורכבות):
-${ctx.classes
-  .filter((c) => !c.isExcluded)
-  .flatMap((c) => c.methods.filter((m) => m.isExplainInAppendix))
-  .map((m) => m.name)
-  .join(', ') || 'לא סומנו שיטות'}
-כתוב נספח קצר עם הסברים על שיטות מורכבות (אם סומנו). אורך: כ-${CHAPTER_WORD_COUNTS.appendices} מילים.`,
+${methodNames}
+כתוב נספח קצר עם הסברים על שיטות מורכבות (אם סומנו).
+מבנה חובה: פסקה קצרה → ואחריה נקודה לכל שיטה. אורך כולל: כ-${CHAPTER_WORD_COUNTS.appendices} מילים.`;
+  },
 };
 
 export async function generateChapter(
@@ -393,12 +459,12 @@ export async function generateChapter(
   ctx: GenerationContext,
 ): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx.language);
-  // Prepend a strong language instruction for Arabic to prevent the AI from
-  // responding in Hebrew (since the context prompts are written in Hebrew).
-  const langPrefix = ctx.language === 'ar'
-    ? '[مهم: اكتب كامل إجابتك باللغة العربية الفصحى فقط. ممنوع استخدام العبرية.]\n\n'
-    : '';
-  const userPrompt = langPrefix + CHAPTER_PROMPTS[chapterKey](ctx);
+  const basePrompt = CHAPTER_PROMPTS[chapterKey](ctx);
+  // Arabic suffix (placed AFTER the Hebrew context so the model reads it last and obeys it).
+  // A prefix alone is not enough — the Hebrew task instructions at the end override it.
+  const userPrompt = ctx.language === 'ar'
+    ? `${basePrompt}\n\n⚠️ تعليمات اللغة — إلزامية: اكتب كامل إجابتك باللغة العربية الفصحى فقط. جميع العناوين (## و ###) يجب أن تكون بالعربية حصراً. ممنوع تماماً كتابة أي كلمة أو جملة بالعبرية في النص أو العناوين أو أي مكان آخر.`
+    : basePrompt;
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 
@@ -406,9 +472,11 @@ export async function generateChapter(
 
 export async function generateUmlDiagram(ctx: GenerationContext): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx.language);
-  const userPrompt = `מחלקות:
-${classesToContext(ctx.classes)}
-צור קוד Mermaid תקני לדיאגרמת מחלקות (classDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
+  const label = ctx.language === 'ar' ? 'الفصول:' : 'מחלקות:';
+  const instruction = ctx.language === 'ar'
+    ? 'أنشئ كود Mermaid صحيحاً لمخطط الفصول (classDiagram). أدرج فقط كود Mermaid، بدون شرح.'
+    : 'צור קוד Mermaid תקני לדיאגרמת מחלקות (classDiagram). הכנס רק את קוד Mermaid, ללא הסברים.';
+  const userPrompt = `${label}\n${classesToContext(ctx.classes)}\n${instruction}`;
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 
@@ -491,17 +559,11 @@ METHOD ClassName.methodName: <תיאור>`;
 
 export async function generateErdDiagram(ctx: GenerationContext): Promise<string> {
   const systemPrompt = buildSystemPrompt(ctx.language);
-  const userPrompt = `טבלאות:
-${tablesToContext(ctx.tables)}
-
-STRICT RULES:
-- Use ONLY the table names and column names listed above.
-- If a table shows "[no column info available]", draw that table as an entity with NO attributes.
-- Do NOT invent, guess, or add any column names or relationships that are not explicitly listed above.
-- Do NOT add Id, CreatedAt, UpdatedAt or any other column unless it appears in the list above.
-- Only draw relationships (||--||, ||--|{) if a FK column is explicitly shown above.
-
-צור קוד Mermaid תקני ל-ERD (erDiagram). הכנס רק את קוד Mermaid, ללא הסברים.`;
+  const label = ctx.language === 'ar' ? 'الجداول:' : 'טבלאות:';
+  const instruction = ctx.language === 'ar'
+    ? 'أنشئ كود Mermaid صحيحاً لمخطط ERD (erDiagram). أدرج فقط كود Mermaid، بدون شرح.'
+    : 'צור קוד Mermaid תקני ל-ERD (erDiagram). הכנס רק את קוד Mermaid, ללא הסברים.';
+  const userPrompt = `${label}\n${tablesToContext(ctx.tables)}\n\nSTRICT RULES:\n- Use ONLY the table names and column names listed above.\n- If a table shows "[no column info available]", draw that table as an entity with NO attributes.\n- Do NOT invent, guess, or add any column names or relationships that are not explicitly listed above.\n- Do NOT add Id, CreatedAt, UpdatedAt or any other column unless it appears in the list above.\n- Only draw relationships (||--||, ||--|{) if a FK column is explicitly shown above.\n\n${instruction}`;
   return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
 }
 

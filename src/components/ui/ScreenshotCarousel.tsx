@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Button from './Button';
 import { useToastStore } from './Toast';
 import { useTranslation } from '../../i18n';
-import type { Screenshot } from '../../store/types';
+import type { Screenshot, ScreenshotChapter } from '../../store/types';
 
 interface ScreenshotCarouselProps {
   screenshots: Screenshot[];
@@ -16,6 +16,36 @@ const USER_TYPE_OPTIONS = [
   { value: 'regular', label: 'User' },
   { value: 'both', label: 'Both' },
 ] as const;
+
+/**
+ * Auto-suggest a chapter tag based on the screen name keywords.
+ * Returns undefined if no strong match — caller should default to 'userGuide'.
+ */
+function suggestChapterFromName(name: string): ScreenshotChapter | undefined {
+  const lower = name.toLowerCase();
+
+  // Introduction hints
+  if (/\b(login|sign.?in|sign.?up|register|home|welcome|main|ראשי|تسجيل|رئيسي|כניסה|הרשמה)\b/i.test(lower))
+    return 'introduction';
+
+  // System analysis hints
+  if (/\b(diagram|erd|uml|use.?case|flow|chart|תרשים|ניתוח|مخطط|تحليل|database|db|מסד|قاعدة)\b/i.test(lower))
+    return 'systemAnalysis';
+
+  // Server implementation hints
+  if (/\b(server|backend|api|controller|service|handler|class|code|שרת|خادم|كود)\b/i.test(lower))
+    return 'serverImplementation';
+
+  // Client implementation hints
+  if (/\b(client|frontend|css|style|layout|design|ui|עיצוב|لقوח|واجهة|تصميم)\b/i.test(lower))
+    return 'clientImplementation';
+
+  // User guide hints (broad — admin/user screens)
+  if (/\b(admin|manage|settings|config|dashboard|screen|form|page|view|panel|ניהול|מסך|הגדרות|إدار|شاشة|إعداد)\b/i.test(lower))
+    return 'userGuide';
+
+  return undefined;
+}
 
 export default function ScreenshotCarousel({
   screenshots,
@@ -32,6 +62,7 @@ export default function ScreenshotCarousel({
   const [screenName, setScreenName] = useState(current?.screenName ?? '');
   const [caption, setCaption] = useState(current?.caption ?? '');
   const [userType, setUserType] = useState<Screenshot['userType']>(current?.userType ?? 'both');
+  const [isIntro, setIsIntro] = useState(current?.chapterTag === 'introduction');
 
   // Sync local state when index changes
   useEffect(() => {
@@ -40,8 +71,15 @@ export default function ScreenshotCarousel({
       setScreenName(ss.screenName);
       setCaption(ss.caption);
       setUserType(ss.userType);
+      setIsIntro(ss.chapterTag === 'introduction');
     }
   }, [index, screenshots]);
+
+  // Derive the chapterTag: intro if toggled, otherwise auto-suggest or default to userGuide
+  const resolveChapterTag = (name: string, intro: boolean): ScreenshotChapter => {
+    if (intro) return 'introduction';
+    return suggestChapterFromName(name) ?? 'userGuide';
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -69,7 +107,8 @@ export default function ScreenshotCarousel({
   };
 
   const saveAndNext = () => {
-    onUpdate(current.id, { screenName, caption, userType });
+    const chapterTag = resolveChapterTag(screenName, isIntro);
+    onUpdate(current.id, { screenName, caption, userType, chapterTag });
     if (index < screenshots.length - 1) {
       goTo(index + 1);
     } else {
@@ -126,16 +165,18 @@ export default function ScreenshotCarousel({
               type="text"
               value={screenName}
               onChange={(e) => setScreenName(e.target.value)}
+              placeholder={t('carousel.screenNameHint')}
               className="rounded border border-gray-300 px-3 py-2 text-sm"
               autoFocus
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">{t('upload.screenshots.caption')}</label>
+            <label className="text-xs font-medium text-gray-600">{t('carousel.description')}</label>
             <input
               type="text"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
+              placeholder={t('carousel.descriptionHint')}
               className="rounded border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -158,6 +199,18 @@ export default function ScreenshotCarousel({
                 </button>
               ))}
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="intro-toggle"
+              checked={isIntro}
+              onChange={(e) => setIsIntro(e.target.checked)}
+              className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+            <label htmlFor="intro-toggle" className="text-sm text-gray-700">
+              {t('carousel.useAsIntro')}
+            </label>
           </div>
         </div>
 
