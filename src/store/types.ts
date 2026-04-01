@@ -100,7 +100,7 @@ export interface Screenshot {
   caption: string;
   screenName: string;
   userType: 'admin' | 'regular' | 'both';
-  chapterTag: ScreenshotChapter;
+  chapterTag?: ScreenshotChapter;
   thumbnailUrl: string;
   file: File | null; // null after page refresh — File is not serialisable
 }
