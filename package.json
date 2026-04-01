@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist --dotfiles"
   },
   "dependencies": {
     "docx": "^9.6.1",
