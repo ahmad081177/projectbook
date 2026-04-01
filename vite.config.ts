@@ -28,6 +28,7 @@ export default defineConfig({
       },
     },
   ],
+  base: '/projectbook/',
   build: {
     target: ['chrome120', 'edge120'],
   },
