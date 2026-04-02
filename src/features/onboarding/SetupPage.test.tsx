@@ -11,13 +11,23 @@ vi.mock('react-router', async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-const testConnection = vi.spyOn(geminiService, 'testGeminiConnection');
+const testGeminiConnection = vi.spyOn(geminiService, 'testGeminiConnection');
+const testOpenAIConnection = vi.spyOn(geminiService, 'testOpenAIConnection');
 
 describe('SetupPage', () => {
   beforeEach(() => {
-    useAppStore.setState({ studentName: '', geminiApiKey: '', aiProvider: 'gemini', completedStep: 0 });
+    useAppStore.setState({
+      studentName: '',
+      aiProvider: 'gemini',
+      geminiApiKey: '',
+      geminiModel: 'gemini-2.5-flash',
+      openaiApiKey: '',
+      openaiModel: 'gpt-4.1-mini',
+      completedStep: 0,
+    });
     mockNavigate.mockClear();
-    testConnection.mockReset();
+    testGeminiConnection.mockReset();
+    testOpenAIConnection.mockReset();
   });
 
   it('renders name, API key, and model fields', () => {
@@ -41,11 +51,11 @@ describe('SetupPage', () => {
     await waitFor(() => {
       expect(screen.getAllByText('שדה חובה').length).toBeGreaterThan(0);
     });
-    expect(testConnection).not.toHaveBeenCalled();
+    expect(testGeminiConnection).not.toHaveBeenCalled();
   });
 
   it('shows success message on successful connection test', async () => {
-    testConnection.mockResolvedValueOnce({ ok: true });
+    testGeminiConnection.mockResolvedValueOnce({ ok: true });
     render(
       <MemoryRouter>
         <SetupPage />
@@ -60,7 +70,7 @@ describe('SetupPage', () => {
   });
 
   it('shows error message on failed connection test', async () => {
-    testConnection.mockResolvedValueOnce({ ok: false, error: 'Invalid API key' });
+    testGeminiConnection.mockResolvedValueOnce({ ok: false, error: 'Invalid API key' });
     render(
       <MemoryRouter>
         <SetupPage />
@@ -75,7 +85,7 @@ describe('SetupPage', () => {
   });
 
   it('saves state and navigates to /extract/code when Next is clicked after success', async () => {
-    testConnection.mockResolvedValueOnce({ ok: true });
+    testGeminiConnection.mockResolvedValueOnce({ ok: true });
     render(
       <MemoryRouter>
         <SetupPage />
@@ -88,6 +98,30 @@ describe('SetupPage', () => {
 
     fireEvent.click(screen.getByText('הבא'));
     expect(useAppStore.getState().studentName).toBe('Avi Cohen');
+    expect(useAppStore.getState().completedStep).toBe(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/extract/code');
+  });
+
+  it('supports OpenAI provider setup and stores its credentials', async () => {
+    testOpenAIConnection.mockResolvedValueOnce({ ok: true });
+    render(
+      <MemoryRouter>
+        <SetupPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText('OpenAI'));
+    fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Noa Levi' } });
+    fireEvent.change(screen.getByLabelText('מפתח API'), { target: { value: 'sk-test' } });
+    fireEvent.click(screen.getByText('בדוק חיבור'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/החיבור הצליח/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('הבא'));
+    expect(useAppStore.getState().aiProvider).toBe('openai');
+    expect(useAppStore.getState().openaiApiKey).toBe('sk-test');
     expect(useAppStore.getState().completedStep).toBe(1);
     expect(mockNavigate).toHaveBeenCalledWith('/extract/code');
   });

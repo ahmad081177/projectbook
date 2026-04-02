@@ -5,13 +5,18 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { useTranslation } from '../../i18n';
-import { testAzureConnection, testGeminiConnection, type AzureConfig } from '../../services/gemini';
+import { testAzureConnection, testGeminiConnection, testOpenAIConnection, type AzureConfig } from '../../services/gemini';
 import { useAppStore } from '../../store';
-import type { AiProvider, GeminiModel } from '../../store/types';
-import { KNOWN_GEMINI_MODELS } from '../../store/types';
+import type { AiProvider, GeminiModel, OpenAIModel } from '../../store/types';
+import { KNOWN_GEMINI_MODELS, KNOWN_OPENAI_MODELS } from '../../store/types';
 
 const GEMINI_MODEL_OPTIONS = [
   ...KNOWN_GEMINI_MODELS.map((m) => ({ value: m, label: m })),
+  { value: '__custom__', label: 'Custom model...' },
+];
+
+const OPENAI_MODEL_OPTIONS = [
+  ...KNOWN_OPENAI_MODELS.map((m) => ({ value: m, label: m })),
   { value: '__custom__', label: 'Custom model...' },
 ];
 
@@ -23,8 +28,10 @@ export default function SetupPage() {
 
   const storedName = useAppStore((s) => s.studentName);
   const storedProvider = useAppStore((s) => s.aiProvider);
-  const storedModel = useAppStore((s) => s.geminiModel);
   const storedGeminiKey = useAppStore((s) => s.geminiApiKey);
+  const storedGeminiModel = useAppStore((s) => s.geminiModel);
+  const storedOpenAIKey = useAppStore((s) => s.openaiApiKey);
+  const storedOpenAIModel = useAppStore((s) => s.openaiModel);
   const storedAzureEndpoint = useAppStore((s) => s.azureEndpoint);
   const storedAzureKey = useAppStore((s) => s.azureApiKey);
   const storedAzureDeployment = useAppStore((s) => s.azureDeploymentName);
@@ -34,11 +41,18 @@ export default function SetupPage() {
   const [provider, setProvider] = useState<AiProvider>(storedProvider);
 
   // Gemini state
-  const isKnownModel = (KNOWN_GEMINI_MODELS as readonly string[]).includes(storedModel);
+  const isKnownGeminiModel = (KNOWN_GEMINI_MODELS as readonly string[]).includes(storedGeminiModel);
   const [geminiKey, setGeminiKey] = useState(storedGeminiKey);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [modelSelect, setModelSelect] = useState<string>(isKnownModel ? storedModel : '__custom__');
-  const [customModel, setCustomModel] = useState<string>(isKnownModel ? '' : storedModel);
+  const [modelSelect, setModelSelect] = useState<string>(isKnownGeminiModel ? storedGeminiModel : '__custom__');
+  const [customModel, setCustomModel] = useState<string>(isKnownGeminiModel ? '' : storedGeminiModel);
+
+  // OpenAI state
+  const isKnownOpenAIModel = (KNOWN_OPENAI_MODELS as readonly string[]).includes(storedOpenAIModel);
+  const [openAiKey, setOpenAiKey] = useState(storedOpenAIKey);
+  const [showOpenAiKey, setShowOpenAiKey] = useState(false);
+  const [openAiModelSelect, setOpenAiModelSelect] = useState<string>(isKnownOpenAIModel ? storedOpenAIModel : '__custom__');
+  const [customOpenAiModel, setCustomOpenAiModel] = useState<string>(isKnownOpenAIModel ? '' : storedOpenAIModel);
 
   // Azure state
   const [azureEndpoint, setAzureEndpoint] = useState(storedAzureEndpoint);
@@ -52,6 +66,7 @@ export default function SetupPage() {
   const [nameError, setNameError] = useState('');
 
   const effectiveModel: GeminiModel = modelSelect === '__custom__' ? customModel : modelSelect;
+  const effectiveOpenAiModel: OpenAIModel = openAiModelSelect === '__custom__' ? customOpenAiModel : openAiModelSelect;
 
   const canProceed = connectionStatus === 'success' && name.trim().length > 0;
 
@@ -73,6 +88,14 @@ export default function SetupPage() {
 
     if (provider === 'gemini') {
       const result = await testGeminiConnection(geminiKey, effectiveModel);
+      if (result.ok) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+        setConnectionError(result.error ?? t('error.connection'));
+      }
+    } else if (provider === 'openai') {
+      const result = await testOpenAIConnection(openAiKey, effectiveOpenAiModel);
       if (result.ok) {
         setConnectionStatus('success');
       } else {
@@ -104,6 +127,14 @@ export default function SetupPage() {
         aiProvider: 'gemini',
         geminiApiKey: geminiKey,
         geminiModel: effectiveModel,
+        completedStep: 1,
+      });
+    } else if (provider === 'openai') {
+      useAppStore.setState({
+        studentName: name.trim(),
+        aiProvider: 'openai',
+        openaiApiKey: openAiKey,
+        openaiModel: effectiveOpenAiModel,
         completedStep: 1,
       });
     } else {
@@ -142,7 +173,7 @@ export default function SetupPage() {
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-gray-700">{t('field.provider')}</span>
           <div className="flex rounded-md border border-gray-300 overflow-hidden">
-            {(['gemini', 'azure-openai'] as AiProvider[]).map((p) => (
+            {(['gemini', 'openai', 'azure-openai'] as AiProvider[]).map((p) => (
               <button
                 key={p}
                 type="button"
@@ -154,7 +185,11 @@ export default function SetupPage() {
                     : 'bg-white text-gray-700 hover:bg-gray-50',
                 ].join(' ')}
               >
-                {p === 'gemini' ? t('provider.gemini') : t('provider.azure')}
+                {p === 'gemini'
+                  ? t('provider.gemini')
+                  : p === 'openai'
+                    ? t('provider.openai')
+                    : t('provider.azure')}
               </button>
             ))}
           </div>
@@ -197,6 +232,48 @@ export default function SetupPage() {
                   placeholder="e.g. gemini-2.5-pro or gpt-4o"
                   value={customModel}
                   onChange={(e) => { setCustomModel(e.target.value); resetConnection(); }}
+                  autoComplete="off"
+                />
+              )}
+            </div>
+          </>
+        ) : provider === 'openai' ? (
+          <>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Input
+                    label={t('field.apiKey')}
+                    type={showOpenAiKey ? 'text' : 'password'}
+                    value={openAiKey}
+                    onChange={(e) => { setOpenAiKey(e.target.value); resetConnection(); }}
+                    autoComplete="off"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowOpenAiKey((v) => !v)}
+                  className="mb-0.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md"
+                  aria-label={showOpenAiKey ? 'Hide key' : 'Show key'}
+                >
+                  {showOpenAiKey ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Select
+                label={t('field.model')}
+                options={OPENAI_MODEL_OPTIONS}
+                value={openAiModelSelect}
+                onChange={(e) => { setOpenAiModelSelect(e.target.value); resetConnection(); }}
+              />
+              {openAiModelSelect === '__custom__' && (
+                <Input
+                  label={t('field.customModel')}
+                  placeholder="e.g. gpt-4.1-mini or gpt-4o"
+                  value={customOpenAiModel}
+                  onChange={(e) => { setCustomOpenAiModel(e.target.value); resetConnection(); }}
                   autoComplete="off"
                 />
               )}

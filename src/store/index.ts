@@ -20,7 +20,12 @@ export const useAppStore = create<AppState>()(
       partialize: (state): Partial<AppState> => ({
         // SECURITY: Never persist API key to any storage
         language: state.language,
+        aiProvider: state.aiProvider,
         geminiModel: state.geminiModel,
+        openaiModel: state.openaiModel,
+        azureEndpoint: state.azureEndpoint,
+        azureDeploymentName: state.azureDeploymentName,
+        azureApiVersion: state.azureApiVersion,
         studentName: state.studentName,
         projectType: state.projectType,
         completedStep: state.completedStep,
@@ -38,6 +43,8 @@ export const useAppStore = create<AppState>()(
         exportStatus: 'idle',
         // EXPLICITLY EXCLUDED (not listed = not persisted):
         //   geminiApiKey — security requirement (NFR6)
+        //   openaiApiKey — security requirement (NFR6)
+        //   azureApiKey — security requirement (NFR6)
         //   screenshots[].file — not serialisable
       }),
     },
