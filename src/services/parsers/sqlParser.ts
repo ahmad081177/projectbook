@@ -114,7 +114,7 @@ export function parseSqlFile(sql: string): DatabaseSchema | null {
       columns.push(col);
     }
 
-    tables.push({ name: tableName, columns, description: '' });
+    tables.push({ name: tableName, columns, description: '', sampleRows: [] });
   }
 
   if (tables.length === 0) return null;

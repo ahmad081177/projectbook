@@ -191,7 +191,11 @@ export function parseAccessFile(
         isForeignKey: false,   // resolved below from MSysRelationships
         description: '',
       }));
-      return { name, columns, description: '' };
+      const sampleRows = extractSampleRows(
+        table.getData() as Array<Record<string, unknown>>,
+        columns.map((col) => col.name),
+      );
+      return { name, columns, description: '', sampleRows };
     });
 
     // Populate FK metadata from MSysRelationships system table
@@ -211,10 +215,33 @@ export function parseAccessFile(
         isForeignKey: false,
         description: '',
       }));
-      return { name, columns, description: '' };
+      return { name, columns, description: '', sampleRows: [] };
     });
     return { source: 'access', tables: tables.length > 0 ? tables : [] };
   }
+}
+
+function formatPreviewValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString().replace('T', ' ').slice(0, 19);
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'bigint' || typeof value === 'boolean') return String(value);
+  if (value instanceof ArrayBuffer) return `[binary ${value.byteLength} bytes]`;
+  if (ArrayBuffer.isView(value)) return `[binary ${value.byteLength} bytes]`;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function extractSampleRows(
+  rows: Array<Record<string, unknown>>,
+  columnNames: string[],
+): Array<Record<string, string>> {
+  return rows.slice(0, 5).map((row) =>
+    Object.fromEntries(columnNames.map((columnName) => [columnName, formatPreviewValue(row[columnName])])),
+  );
 }
 
 /**
