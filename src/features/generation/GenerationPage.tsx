@@ -12,12 +12,13 @@ import {
   type GenerationContext,
 } from '../../services/gemini';
 import { useAppStore } from '../../store';
-import type { ChapterKey, SectionStatus } from '../../store/types';
+import type { AiUsageStats, ChapterKey, SectionStatus } from '../../store/types';
 
 interface GenerationTask {
   id: string;
   label: string;
   status: SectionStatus | 'pending';
+  usage?: AiUsageStats;
 }
 
 const CHAPTER_ORDER: ChapterKey[] = [
@@ -36,7 +37,11 @@ const CHAPTER_ORDER: ChapterKey[] = [
 
 const ALL_SECTION_IDS = [...CHAPTER_ORDER, 'erd'];
 
-function buildTasks(t: (key: string) => string, selected: Set<string>): GenerationTask[] {
+function buildTasks(
+  t: (key: string) => string,
+  selected: Set<string>,
+  includeClassDescriptions: boolean,
+): GenerationTask[] {
   return [
     { id: 'read-code', label: t('gen.task.readCode'), status: 'pending' },
     { id: 'read-db', label: t('gen.task.readDb'), status: 'pending' },
@@ -47,6 +52,9 @@ function buildTasks(t: (key: string) => string, selected: Set<string>): Generati
         label: `${t(`gen.chapter.${key}`)}...`,
         status: 'pending' as const,
       })),
+    ...(selected.has('serverImplementation') && includeClassDescriptions
+      ? [{ id: 'class-descriptions', label: t('gen.task.classDescriptions'), status: 'pending' as const }]
+      : []),
     ...(selected.has('erd') ? [{ id: 'erd', label: t('gen.task.erd'), status: 'pending' as const }] : []),
   ];
 }
@@ -58,14 +66,32 @@ function StatusIcon({ status }: { status: GenerationTask['status'] }) {
   return <span className="text-gray-300">○</span>;
 }
 
+function getProviderCredentials(store: ReturnType<typeof useAppStore.getState>) {
+  return {
+    apiKey: store.aiProvider === 'openai' ? store.openaiApiKey : store.geminiApiKey,
+    model: store.aiProvider === 'openai' ? store.openaiModel : store.geminiModel,
+  };
+}
+
+function getProviderLabel(provider: AiUsageStats['provider'], t: (key: string) => string): string {
+  if (provider === 'openai') return t('provider.openai');
+  if (provider === 'azure-openai') return t('provider.azure');
+  return t('provider.gemini');
+}
+
+function formatTokenCount(value: number): string {
+  return value.toLocaleString();
+}
+
 export default function GenerationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const store = useAppStore.getState();
+  const hasVisibleClasses = store.classes.some((cls) => !cls.isExcluded);
   // Only skip the splash if generation is already in-flight (navigated away mid-run)
   const [isStarted, setIsStarted] = useState(() => useAppStore.getState().isGenerating);
-  const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t, new Set(ALL_SECTION_IDS)));
+  const [tasks, setTasks] = useState<GenerationTask[]>(() => buildTasks(t, new Set(ALL_SECTION_IDS), hasVisibleClasses));
   const [hasAllFailed, setHasAllFailed] = useState(false);
   const [failedKeys, setFailedKeys] = useState<ChapterKey[]>([]);
   const [isDone, setIsDone] = useState(false);
@@ -103,13 +129,24 @@ export default function GenerationPage() {
   };
 
   const handleStart = () => {
-    setTasks(buildTasks(t, selectedRef.current));
+    setTasks(buildTasks(t, selectedRef.current, hasVisibleClasses));
     setIsStarted(true);
   };
 
   const completedCount = tasks.filter((t) => t.status === 'complete' || t.status === 'failed').length;
   const successCount = tasks.filter((t) => t.status === 'complete').length;
   const progress = Math.round((completedCount / tasks.length) * 100);
+  const tokenSummary = tasks.reduce(
+    (acc, task) => {
+      if (!task.usage) return acc;
+      acc.inputTokens += task.usage.inputTokens;
+      acc.outputTokens += task.usage.outputTokens;
+      acc.totalTokens += task.usage.totalTokens;
+      acc.hasEstimated = acc.hasEstimated || task.usage.estimated;
+      return acc;
+    },
+    { inputTokens: 0, outputTokens: 0, totalTokens: 0, hasEstimated: false },
+  );
 
   // Elapsed timer — ticks every second while generating
   useEffect(() => {
@@ -128,8 +165,8 @@ export default function GenerationPage() {
     }
   }, [previewSnippet]);
 
-  const updateTask = (id: string, status: GenerationTask['status']) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+  const updateTask = (id: string, patch: Partial<GenerationTask>) => {
+    setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, ...patch } : task)));
   };
 
   useEffect(() => {
@@ -137,10 +174,11 @@ export default function GenerationPage() {
     started.current = true;
 
     const run = async () => {
+      const providerCreds = getProviderCredentials(store);
       const ctx: GenerationContext = {
         provider: store.aiProvider,
-        apiKey: store.geminiApiKey,
-        model: store.geminiModel,
+        apiKey: providerCreds.apiKey,
+        model: providerCreds.model,
         azureCfg: store.aiProvider === 'azure-openai' ? {
           endpoint: store.azureEndpoint,
           apiKey: store.azureApiKey,
@@ -159,14 +197,12 @@ export default function GenerationPage() {
         })),
       };
 
-      // Step 1: "Read" steps (instant UI feedback)
-      updateTask('read-code', 'generating');
-      await new Promise((r) => setTimeout(r, 400));
-      updateTask('read-code', 'complete');
-
-      updateTask('read-db', 'generating');
-      await new Promise((r) => setTimeout(r, 300));
-      updateTask('read-db', 'complete');
+      updateTask('read-code', { status: 'generating', usage: undefined });
+        await new Promise((r) => setTimeout(r, 400));
+      updateTask('read-code', { status: 'complete', usage: undefined });
+      updateTask('read-db', { status: 'generating', usage: undefined });
+        await new Promise((r) => setTimeout(r, 300));
+      updateTask('read-db', { status: 'complete', usage: undefined });
 
       // Step 2: Generate each chapter sequentially with a 1-second gap
       // to stay under Gemini free-tier rate limit (~15 RPM).
@@ -178,7 +214,7 @@ export default function GenerationPage() {
           useAppStore.setState((s) => ({
             generatedContent: {
               ...s.generatedContent,
-              [key]: { content: s.generatedContent[key]?.content ?? '', status: 'skipped' },
+              [key]: { content: s.generatedContent[key]?.content ?? '', status: 'skipped', usage: undefined },
             },
           }));
         }
@@ -189,25 +225,25 @@ export default function GenerationPage() {
       for (const key of CHAPTER_ORDER) {
         if (abortRef.current) break;
         if (!sel.has(key)) continue;
-        updateTask(key, 'generating');
+        updateTask(key, { status: 'generating', usage: undefined });
         useAppStore.setState((s) => ({
           generatedContent: {
             ...s.generatedContent,
-            [key]: { content: '', status: 'generating' },
+            [key]: { content: '', status: 'generating', usage: undefined },
           },
         }));
 
         try {
-          const content = await generateChapter(key, ctx);
+          const result = await generateChapter(key, ctx);
           useAppStore.setState((s) => ({
             generatedContent: {
               ...s.generatedContent,
-              [key]: { content, status: 'complete', lastGenerated: new Date().toISOString() },
+              [key]: { content: result.text, status: 'complete', lastGenerated: new Date().toISOString(), usage: result.usage },
             },
           }));
-          updateTask(key, 'complete');
+          updateTask(key, { status: 'complete', usage: result.usage });
           // Show first ~300 words (~1800 chars) of the generated chapter as a live preview
-          const snippet = content.trim().slice(0, 1800);
+          const snippet = result.text.trim().slice(0, 1800);
           setPreviewSnippet({ label: t(`gen.chapter.${key}`), text: snippet });
         } catch {
           failedCount++;
@@ -215,24 +251,25 @@ export default function GenerationPage() {
           useAppStore.setState((s) => ({
             generatedContent: {
               ...s.generatedContent,
-              [key]: { content: '', status: 'failed' },
+              [key]: { content: '', status: 'failed', usage: undefined },
             },
           }));
-          updateTask(key, 'failed');
+          updateTask(key, { status: 'failed', usage: undefined });
         }
 
         // 1-second breathing room between calls
         if (!abortRef.current) await new Promise((r) => setTimeout(r, 1000));
       }
 
-      // Step 2.5: Silently enrich class descriptions (no visible task)
+      // Step 2.5: Enrich class descriptions and expose it as its own step.
       if (!abortRef.current && sel.has('serverImplementation') && ctx.classes.some((c) => !c.isExcluded)) {
+        updateTask('class-descriptions', { status: 'generating', usage: undefined });
         try {
-          const descriptions = await generateClassDescriptions(ctx);
-          if (Object.keys(descriptions).length > 0) {
+          const result = await generateClassDescriptions(ctx);
+          if (Object.keys(result.descriptions).length > 0) {
             useAppStore.setState((s) => ({
               classes: s.classes.map((cls) => {
-                const desc = descriptions[cls.name];
+                const desc = result.descriptions[cls.name];
                 if (!desc) return cls;
                 return {
                   ...cls,
@@ -245,23 +282,26 @@ export default function GenerationPage() {
               }),
             }));
           }
-        } catch { /* silently skip on failure */ }
+          updateTask('class-descriptions', { status: 'complete', usage: result.usage });
+        } catch {
+          updateTask('class-descriptions', { status: 'failed', usage: undefined });
+        }
       }
 
       // Step 3: Generate diagrams (only if selected)
       if (sel.has('erd')) {
-        updateTask('erd', 'generating');
+        updateTask('erd', { status: 'generating', usage: undefined });
         try {
-          const erdCode = await generateErdDiagram(ctx);
+          const result = await generateErdDiagram(ctx);
           useAppStore.setState((s) => ({
-            diagrams: { ...s.diagrams, erd: { mermaidCode: erdCode, status: 'complete' } },
+            diagrams: { ...s.diagrams, erd: { mermaidCode: result.text, status: 'complete', usage: result.usage } },
           }));
-          updateTask('erd', 'complete');
+          updateTask('erd', { status: 'complete', usage: result.usage });
         } catch {
           useAppStore.setState((s) => ({
-            diagrams: { ...s.diagrams, erd: { mermaidCode: '', status: 'failed' } },
+            diagrams: { ...s.diagrams, erd: { mermaidCode: '', status: 'failed', usage: undefined } },
           }));
-          updateTask('erd', 'failed');
+          updateTask('erd', { status: 'failed', usage: undefined });
         }
       }
 
@@ -290,10 +330,11 @@ export default function GenerationPage() {
   const retryFailed = async () => {
     if (failedKeys.length === 0) return;
     const store2 = useAppStore.getState();
+    const providerCreds = getProviderCredentials(store2);
     const ctx: GenerationContext = {
       provider: store2.aiProvider,
-      apiKey: store2.geminiApiKey,
-      model: store2.geminiModel,
+      apiKey: providerCreds.apiKey,
+      model: providerCreds.model,
       azureCfg: store2.aiProvider === 'azure-openai' ? {
         endpoint: store2.azureEndpoint,
         apiKey: store2.azureApiKey,
@@ -313,22 +354,22 @@ export default function GenerationPage() {
     };
     const stillFailed: ChapterKey[] = [];
     for (const key of failedKeys) {
-      updateTask(key, 'generating');
+      updateTask(key, { status: 'generating', usage: undefined });
       useAppStore.setState((s) => ({
-        generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'generating' } },
+        generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'generating', usage: undefined } },
       }));
       try {
-        const content = await generateChapter(key, ctx);
+        const result = await generateChapter(key, ctx);
         useAppStore.setState((s) => ({
-          generatedContent: { ...s.generatedContent, [key]: { content, status: 'complete', lastGenerated: new Date().toISOString() } },
+          generatedContent: { ...s.generatedContent, [key]: { content: result.text, status: 'complete', lastGenerated: new Date().toISOString(), usage: result.usage } },
         }));
-        updateTask(key, 'complete');
+        updateTask(key, { status: 'complete', usage: result.usage });
       } catch {
         stillFailed.push(key);
         useAppStore.setState((s) => ({
-          generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'failed' } },
+          generatedContent: { ...s.generatedContent, [key]: { content: '', status: 'failed', usage: undefined } },
         }));
-        updateTask(key, 'failed');
+        updateTask(key, { status: 'failed', usage: undefined });
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -436,6 +477,27 @@ export default function GenerationPage() {
 
         <ProgressBar value={progress} />
 
+        {tokenSummary.totalTokens > 0 && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center">
+              <div className="text-[11px] text-gray-500">{t('gen.tokens.input')}</div>
+              <div className="text-sm font-semibold text-gray-800">{formatTokenCount(tokenSummary.inputTokens)}</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center">
+              <div className="text-[11px] text-gray-500">{t('gen.tokens.output')}</div>
+              <div className="text-sm font-semibold text-gray-800">{formatTokenCount(tokenSummary.outputTokens)}</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center">
+              <div className="text-[11px] text-gray-500">{t('gen.tokens.total')}</div>
+              <div className="text-sm font-semibold text-gray-800">{formatTokenCount(tokenSummary.totalTokens)}</div>
+            </div>
+          </div>
+        )}
+
+        {tokenSummary.hasEstimated && (
+          <div className="text-[11px] text-gray-500 text-center">{t('gen.tokens.estimated')}</div>
+        )}
+
         {hasAllFailed && !isStopped && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {t('status.failed')} — {t('download.button')} {t('gen.stillAvailable')}
@@ -456,21 +518,48 @@ export default function GenerationPage() {
         <div className="w-72 flex-shrink-0 bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-2 overflow-y-auto">
           <ul className="flex flex-col gap-2 flex-1">
             {tasks.map((task) => (
-              <li key={task.id} className="flex items-center gap-3 text-sm">
-                <StatusIcon status={task.status} />
-                <span
-                  className={
-                    task.status === 'complete'
-                      ? 'text-gray-700'
-                      : task.status === 'generating'
-                        ? 'text-blue-700 font-medium'
-                        : task.status === 'failed'
-                          ? 'text-amber-600'
-                          : 'text-gray-400'
-                  }
-                >
-                  {task.label}
-                </span>
+              <li key={task.id} className="flex items-start gap-3 text-sm">
+                <div className="pt-0.5"><StatusIcon status={task.status} /></div>
+                <div className="min-w-0">
+                  <div
+                    className={
+                      task.status === 'complete'
+                        ? 'text-gray-700'
+                        : task.status === 'generating'
+                          ? 'text-blue-700 font-medium'
+                          : task.status === 'failed'
+                            ? 'text-amber-600'
+                            : 'text-gray-400'
+                    }
+                  >
+                    {task.label}
+                  </div>
+                  {task.status === 'complete' && task.usage && (
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      {/* Provider badge + model name */}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 leading-none">
+                          {getProviderLabel(task.usage.provider, t)}
+                        </span>
+                        <span className="truncate text-[10px] text-gray-400 leading-none">{task.usage.model}</span>
+                      </div>
+                      {/* Token chips */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-sky-50 border border-sky-100 leading-none">
+                          <span className="font-semibold text-sky-700">{formatTokenCount(task.usage.inputTokens)}</span>
+                          <span className="text-sky-400">{t('gen.tokens.input')}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-emerald-50 border border-emerald-100 leading-none">
+                          <span className="font-semibold text-emerald-700">{formatTokenCount(task.usage.outputTokens)}</span>
+                          <span className="text-emerald-400">{t('gen.tokens.output')}</span>
+                        </span>
+                        {task.usage.estimated && (
+                          <span className="text-[11px] text-amber-500 font-bold leading-none" title={t('gen.tokens.estimated')}>≈</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

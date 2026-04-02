@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import WizardLayout from '../../components/layout/WizardLayout';
 import Button from '../../components/ui/Button';
@@ -46,6 +46,17 @@ export default function ExportPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
 
+  const tokenTotals = useMemo(() => {
+    let input = 0, output = 0, estimated = false;
+    Object.values(generatedContent).forEach((ch) => {
+      if (ch.usage) { input += ch.usage.inputTokens; output += ch.usage.outputTokens; estimated = estimated || ch.usage.estimated; }
+    });
+    [diagrams.uml, diagrams.erd].forEach((d) => {
+      if (d.usage) { input += d.usage.inputTokens; output += d.usage.outputTokens; estimated = estimated || d.usage.estimated; }
+    });
+    return { input, output, total: input + output, estimated, hasData: input + output > 0 };
+  }, [generatedContent, diagrams]);
+
   // Mark Export step as active in the step indicator
   useEffect(() => {
     useAppStore.setState({ completedStep: 6 });
@@ -88,7 +99,15 @@ export default function ExportPage() {
   const handleStartOver = () => {
     useAppStore.setState({
       language: 'he',
+      aiProvider: 'gemini',
       geminiApiKey: '',
+      geminiModel: 'gemini-2.5-flash',
+      openaiApiKey: '',
+      openaiModel: 'gpt-4.1-mini',
+      azureEndpoint: '',
+      azureApiKey: '',
+      azureDeploymentName: '',
+      azureApiVersion: '2024-02-01',
       studentName: '',
       projectType: null,
       completedStep: -1,
@@ -135,6 +154,27 @@ export default function ExportPage() {
             })}
           </ul>
         </div>
+
+        {/* Compact token summary */}
+        {tokenTotals.hasData && (
+          <div className="flex items-center justify-center gap-2 flex-wrap py-1">
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] bg-sky-50 border border-sky-100">
+              <span className="font-semibold text-sky-700">{tokenTotals.input.toLocaleString()}</span>
+              <span className="text-sky-400">{t('gen.tokens.input')}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] bg-emerald-50 border border-emerald-100">
+              <span className="font-semibold text-emerald-700">{tokenTotals.output.toLocaleString()}</span>
+              <span className="text-emerald-400">{t('gen.tokens.output')}</span>
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] bg-gray-100 border border-gray-200">
+              <span className="font-semibold text-gray-700">{tokenTotals.total.toLocaleString()}</span>
+              <span className="text-gray-400">{t('gen.tokens.total')}</span>
+            </span>
+            {tokenTotals.estimated && (
+              <span className="text-amber-500 text-[13px] font-bold leading-none" title={t('gen.tokens.estimated')}>≈</span>
+            )}
+          </div>
+        )}
 
         {/* Download button */}
         <Button

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import WizardHeader from '../../components/layout/WizardHeader';
 import Badge from '../../components/ui/Badge';
@@ -24,6 +24,13 @@ const CHAPTER_ORDER: ChapterKey[] = [
   'appendices',
 ];
 
+function getProviderCredentials(store: ReturnType<typeof useAppStore.getState>) {
+  return {
+    apiKey: store.aiProvider === 'openai' ? store.openaiApiKey : store.geminiApiKey,
+    model: store.aiProvider === 'openai' ? store.openaiModel : store.geminiModel,
+  };
+}
+
 function statusToBadge(
   status: string,
   t: (key: string) => string,
@@ -43,6 +50,7 @@ export default function ReviewPage() {
   const { chapterKey } = useParams<{ chapterKey?: ChapterKey }>();
 
   const generatedContent = useAppStore((s) => s.generatedContent);
+  const diagrams = useAppStore((s) => s.diagrams);
   const language = useAppStore((s) => s.language);
   const isRtl = language === 'he' || language === 'ar';
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -53,6 +61,17 @@ export default function ReviewPage() {
 
   const activeChapter = generatedContent[activeKey];
 
+  const tokenTotals = useMemo(() => {
+    let input = 0, output = 0, estimated = false;
+    Object.values(generatedContent).forEach((ch) => {
+      if (ch.usage) { input += ch.usage.inputTokens; output += ch.usage.outputTokens; estimated = estimated || ch.usage.estimated; }
+    });
+    [diagrams.uml, diagrams.erd].forEach((d) => {
+      if (d.usage) { input += d.usage.inputTokens; output += d.usage.outputTokens; estimated = estimated || d.usage.estimated; }
+    });
+    return { input, output, total: input + output, estimated, hasData: input + output > 0 };
+  }, [generatedContent, diagrams]);
+
   const handleDownload = () => {
     void navigate('/export');
   };
@@ -60,10 +79,11 @@ export default function ReviewPage() {
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     const s = useAppStore.getState();
+    const providerCreds = getProviderCredentials(s);
     const ctx: GenerationContext = {
       provider: s.aiProvider,
-      apiKey: s.geminiApiKey,
-      model: s.geminiModel,
+      apiKey: providerCreds.apiKey,
+      model: providerCreds.model,
       azureCfg: s.aiProvider === 'azure-openai' ? {
         endpoint: s.azureEndpoint,
         apiKey: s.azureApiKey,
@@ -82,16 +102,16 @@ export default function ReviewPage() {
       })),
     };
     useAppStore.setState((prev) => ({
-      generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'generating' } },
+      generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'generating', usage: undefined } },
     }));
     try {
-      const content = await generateChapter(activeKey, ctx);
+      const result = await generateChapter(activeKey, ctx);
       useAppStore.setState((prev) => ({
-        generatedContent: { ...prev.generatedContent, [activeKey]: { content, status: 'complete', lastGenerated: new Date().toISOString() } },
+        generatedContent: { ...prev.generatedContent, [activeKey]: { content: result.text, status: 'complete', lastGenerated: new Date().toISOString(), usage: result.usage } },
       }));
     } catch {
       useAppStore.setState((prev) => ({
-        generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'failed' } },
+        generatedContent: { ...prev.generatedContent, [activeKey]: { content: '', status: 'failed', usage: undefined } },
       }));
     } finally {
       setIsRegenerating(false);
@@ -139,6 +159,26 @@ export default function ReviewPage() {
               UML + ERD
             </button>
           </div>
+
+          {/* Compact token summary */}
+          {tokenTotals.hasData && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-sky-50 border border-sky-100 leading-none">
+                  <span className="font-semibold text-sky-700">{tokenTotals.input.toLocaleString()}</span>
+                  <span className="text-sky-400">{t('gen.tokens.input')}</span>
+                </span>
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-emerald-50 border border-emerald-100 leading-none">
+                  <span className="font-semibold text-emerald-700">{tokenTotals.output.toLocaleString()}</span>
+                  <span className="text-emerald-400">{t('gen.tokens.output')}</span>
+                </span>
+                {tokenTotals.estimated && (
+                  <span className="text-amber-500 text-[12px] font-bold leading-none" title={t('gen.tokens.estimated')}>≈</span>
+                )}
+              </div>
+              <div className="text-[10px] text-gray-400">{t('gen.tokens.total')}: {tokenTotals.total.toLocaleString()}</div>
+            </div>
+          )}
         </aside>
 
         {/* Main content */}
