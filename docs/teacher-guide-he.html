@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RecursiQuest - מדריך למורה</title>
+  <style>
+:root {
+  --bg: #f5f2ea;
+  --surface: #fffdf8;
+  --ink: #1f1f1f;
+  --line: #dfd7c8;
+  --accent: #0f766e;
+  --accent-soft: #dff4f2;
+  --code-bg: #f3efe5;
+  --table-head: #f0e6d2;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", "Noto Sans", Tahoma, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%, #f8e7c2 0%, transparent 35%),
+    radial-gradient(circle at 88% 0%, #d6efe9 0%, transparent 40%),
+    var(--bg);
+  color: var(--ink);
+  line-height: 1.75;
+}
+main {
+  max-width: 980px;
+  margin: 2rem auto 3rem;
+  padding: 2rem clamp(1rem, 2.8vw, 2.25rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+h1, h2, h3, h4 { line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.6em; }
+h1 { margin-top: 0.25em; padding-bottom: 0.6rem; border-bottom: 3px solid var(--accent-soft); }
+h2 { border-inline-start: 5px solid var(--accent); padding-inline-start: 0.7rem; }
+a { color: #0d5c56; text-underline-offset: 2px; }
+a:hover { color: #094944; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+blockquote {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-inline-start: 4px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+code {
+  font-family: Consolas, "Cascadia Code", monospace;
+  background: var(--code-bg);
+  border: 1px solid #e7ddcb;
+  padding: 0.08rem 0.35rem;
+  border-radius: 5px;
+}
+pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: #24292e;
+  color: #f7f7f7;
+  border-radius: 10px;
+}
+pre code { background: transparent; border: 0; color: inherit; padding: 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.97rem;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.62rem 0.7rem;
+  vertical-align: top;
+}
+th { background: var(--table-head); font-weight: 700; }
+ul, ol { padding-inline-start: 1.25rem; }
+li { margin-bottom: 0.32rem; }
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  main { margin: 1rem 0.7rem 1.3rem; padding: 1rem; border-radius: 12px; }
+  table { font-size: 0.92rem; display: block; overflow-x: auto; white-space: nowrap; }
+}
+  </style>
+</head>
+<body>
+  <main>
+<h1>AutoProjectBook — מדריך למורה</h1>
+<p><strong>גרסה 1.0 | אפריל 2026</strong></p>
+<hr>
+<h2>תוכן עניינים</h2>
+<ol>
+<li><a href="#%D7%9E%D7%94-%D7%96%D7%94-autoprojectbook">מה זה AutoProjectBook?</a></li>
+<li><a href="#%D7%9C%D7%9E%D7%99-%D7%96%D7%94-%D7%9E%D7%99%D7%95%D7%A2%D7%93">למי זה מיועד?</a></li>
+<li><a href="#%D7%9E%D7%94-%D7%9B%D7%95%D7%9C%D7%9C-%D7%94%D7%9E%D7%A1%D7%9E%D7%9A-%D7%A9%D7%A0%D7%95%D7%A6%D7%A8">מה כולל המסמך שנוצר?</a></li>
+<li><a href="#%D7%90%D7%99%D7%9A-%D7%9E%D7%A9%D7%AA%D7%9E%D7%A9%D7%99%D7%9D--%D7%A9%D7%9C%D7%91-%D7%90%D7%97%D7%A8-%D7%A9%D7%9C%D7%91">איך משתמשים — שלב אחר שלב</a><ul>
+<li><a href="#%D7%A9%D7%9C%D7%91-1--%D7%91%D7%97%D7%99%D7%A8%D7%AA-%D7%A9%D7%A4%D7%94">שלב 1 — בחירת שפה</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-2--%D7%94%D7%92%D7%93%D7%A8%D7%95%D7%AA">שלב 2 — הגדרות</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-3--%D7%99%D7%99%D7%91%D7%95%D7%90-%D7%A7%D7%95%D7%93">שלב 3 — ייבוא קוד</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-4--%D7%99%D7%99%D7%91%D7%95%D7%90-%D7%9E%D7%A1%D7%93-%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D">שלב 4 — ייבוא מסד נתונים</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-5--%D7%99%D7%99%D7%91%D7%95%D7%90-%D7%A6%D7%99%D7%9C%D7%95%D7%9E%D7%99-%D7%9E%D7%A1%D7%9A">שלב 5 — ייבוא צילומי מסך</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-6--%D7%99%D7%A6%D7%99%D7%A8%D7%AA-%D7%94%D7%9E%D7%A1%D7%9E%D7%9A">שלב 6 — יצירת המסמך</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-7--%D7%A1%D7%A7%D7%99%D7%A8%D7%AA-%D7%A4%D7%A8%D7%A7%D7%99%D7%9D">שלב 7 — סקירת פרקים</a></li>
+<li><a href="#%D7%A9%D7%9C%D7%91-8--%D7%99%D7%99%D7%A6%D7%95%D7%90-%D7%94%D7%95%D7%A8%D7%93%D7%94">שלב 8 — ייצוא: הורדה</a></li>
+</ul>
+</li>
+<li><a href="#%D7%AA%D7%9B%D7%95%D7%A0%D7%95%D7%AA-%D7%AA%D7%99%D7%A2%D7%95%D7%93-%D7%94%D7%A7%D7%95%D7%93">תכונות תיעוד הקוד</a><ul>
+<li><a href="#%D7%A4%D7%90%D7%A0%D7%9C-%D7%A7%D7%98%D7%A2%D7%99-%D7%94%D7%A7%D7%95%D7%93">פאנל קטעי הקוד</a></li>
+<li><a href="#%D7%A4%D7%95%D7%A0%D7%A7%D7%A6%D7%99%D7%95%D7%AA-%D7%9E%D7%A4%D7%AA%D7%97-%D7%94%D7%A4%D7%95%D7%A0%D7%A7%D7%A6%D7%99%D7%95%D7%AA-%D7%A9%D7%9C%D7%99">פונקציות מפתח (הפונקציות שלי)</a></li>
+<li><a href="#%D7%94%D7%A1%D7%91%D7%A8-%D7%94%D7%A7%D7%A8%D7%99%D7%90%D7%94">הסבר הקריאה</a></li>
+<li><a href="#%D7%A8%D7%A7%D7%95%D7%A8%D7%A1%D7%99%D7%94-%D7%95%D7%A2%D7%A5-%D7%94%D7%A8%D7%A7%D7%95%D7%A8%D7%A1%D7%99%D7%94">רקורסיה ועץ הרקורסיה</a></li>
+<li><a href="#%D7%90%D7%9C%D7%92%D7%95%D7%A8%D7%99%D7%AA%D7%9E%D7%99-%D7%9E%D7%99%D7%95%D7%9F">אלגוריתמי מיון</a></li>
+<li><a href="#%D7%9E%D7%97%D7%A1%D7%A0%D7%99%D7%AA-%D7%94%D7%A7%D7%A8%D7%99%D7%90%D7%95%D7%AA-call-stack">מחסנית הקריאות (Call Stack)</a></li>
+</ul>
+</li>
+<li><a href="#%D7%A4%D7%A8%D7%98%D7%99-%D7%99%D7%99%D7%91%D7%95%D7%90-%D7%95%D7%99%D7%99%D7%A6%D7%95%D7%90">פרטי ייבוא וייצוא</a></li>
+<li><a href="#%D7%94%D7%95%D7%A1%D7%A4%D7%AA-%D7%A4%D7%95%D7%A0%D7%A7%D7%A6%D7%99%D7%94-%D7%99%D7%93%D7%A0%D7%99%D7%AA">הוספת פונקציה ידנית</a></li>
+<li><a href="#%D7%AA%D7%9E%D7%99%D7%9B%D7%AA-%D7%A9%D7%A4%D7%95%D7%AA">תמיכת שפות</a></li>
+<li><a href="#%D7%9B%D7%9C-%D7%94%D7%AA%D7%9B%D7%95%D7%A0%D7%95%D7%AA-%D7%94%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA">כל התכונות הפעילות</a></li>
+</ol>
+<hr>
+<h2>מה זה AutoProjectBook?</h2>
+<p><strong>AutoProjectBook</strong> הוא כלי חינמי מבוסס דפדפן, שנועד לעזור לתלמידים במגמת הנדסת תוכנה (5 יחידות לימוד) ליצור את <strong>ספר הפרויקט</strong> המנדטורי — התיעוד הרשמי הנדרש על ידי משרד החינוך.</p>
+<p>במקום לכתוב מסמך של 40–60 עמודים מאפס, התלמיד מעלה את קבצי הפרויקט שלו, סכמת מסד הנתונים, וצילומי מסך — והכלי <strong>יוצר אוטומטית מסמך Word מלא ומעוצב</strong> (docx.) בעברית או ערבית, מוכן לסקירה, להשלמה ולהגשה.</p>
+<p>הכלי משתמש ב<strong>בינה מלאכותית (Google Gemini או Azure OpenAI)</strong> כדי לנתח את מבנה הקוד ולכתוב טקסט רלוונטי ומקצועי עבור כל פרק אוטומטית. לא מועלה קוד מלא לרשת — רק שמות מחלקות, חתימות מתודות ומבנה טבלאות נשלחים לבינה המלאכותית.</p>
+<blockquote>
+<p><strong>נקודה חשובה למורים:</strong> הכלי מייצר כ-80% מהמסמך באופן אוטומטי. התלמיד עדיין נדרש להשלים בעצמו את סעיף ההתבוננות האישית ולהוסיף את שמו לעמוד השער ב-Microsoft Word לפני ההגשה.</p>
+</blockquote>
+<hr>
+<h2>למי זה מיועד?</h2>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">משתמש</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">תפקיד</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תלמידים (ראשוני)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">כיתות י"א–י"ב, מגמת הנדסת תוכנה. סיימו את פרויקט ה-C# שלהם וצריכים לכתוב תיעוד רשמי.</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מורים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מנחים את התלמידים בתהליך, מוודאים שכל הסעיפים הנדרשים קיימים ומעריכים את המסמך שהוגש.</td>
+</tr>
+</tbody></table>
+
+<p>הכלי פועל לחלוטין בדפדפן — אין צורך בהתקנה. ניתן להשתמש בו מכל מחשב בבית הספר או מחשב אישי עם חיבור לאינטרנט (Chrome או Edge מומלצים).</p>
+<hr>
+<h2>מה כולל המסמך שנוצר?</h2>
+<p>הכלי מייצר מסמך Word בנוי לפי הנחיות משרד החינוך. כל הפרקים המנדטוריים נוצרים אוטומטית:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">#</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">פרק</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">מה מכיל</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">1</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מבוא</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מטרות הפרויקט, קהל יעד, הנמקת הצורך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">2</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>סקירת טכנולוגיות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">פריימוורקים, שפות וכלים בהם השתמש התלמיד</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">3</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ניתוח מערכת</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">דרישות פונקציונליות ואי-פונקציונליות</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">4</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מסד נתונים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">תיאור טבלאות, עמודות, דיאגרמת ERD</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">5</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מימוש צד שרת</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מחלקות לוגיקה עסקית, קטעי קוד מרכזיים, הסברי מתודות</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">6</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מימוש צד לקוח</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מבנה ממשק המשתמש, רכיבים ותיאורי מסכים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">7</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מדריך משתמש</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הוראות שלב-אחר-שלב עם צילומי מסך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">8</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>רפלקציה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">התבוננות אישית של התלמיד (מושלמת ידנית ב-Word)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">9</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>קשיים ופתרונות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">אתגרים טכניים ואיך פתרו אותם</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">10</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>פיתוחים עתידיים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">שיפורים מוצעים ושלב הבא</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">11</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>נספחים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">תיעוד מחלקות נוסף</td>
+</tr>
+</tbody></table>
+
+<hr>
+<h2>איך משתמשים — שלב אחר שלב</h2>
+<p>הכלי בנוי כאשף עם 8 שלבים. סרגל התקדמות בראש הדף מראה באיזה שלב נמצאים. שלבים שהושלמו ניתנים ללחיצה לחזרה ולביצוע תיקונים.</p>
+<hr>
+<h3>שלב 1 — בחירת שפה</h3>
+<p>המסך הראשון מבקש מהתלמיד לבחור את שפת הפלט של המסמך:</p>
+<ul>
+<li><strong>עברית</strong> — המסמך כולו ייכתב בעברית</li>
+<li><strong>العربية (ערבית)</strong> — המסמך כולו ייכתב בערבית</li>
+</ul>
+<p>ממשק האפליקציה גם עובר לשפה שנבחרה עם תמיכה מלאה בפריסה מימין לשמאל (RTL).</p>
+<hr>
+<h3>שלב 2 — הגדרות</h3>
+<p>בשלב זה התלמיד ממלא את הפרטים הבסיסיים הדרושים:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">שדה</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">תיאור</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>שם התלמיד</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מופיע בכותרת המסמך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מפתח API של Gemini</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">נדרש לייצור טקסט באמצעות AI. המפתח נשמר בדפדפן בלבד.</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>מודל AI</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">בחירת מודל Gemini — ברירת מחדל: <code dir="ltr">gemini-1.5-pro</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>סוג הפרויקט</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ASP.NET / Blazor / WPF / Windows Forms / Android / אחר</td>
+</tr>
+</tbody></table>
+
+<p>כפתור <strong>&quot;בדוק מפתח&quot;</strong> מאמת את מפתח ה-API לפני המשך — כדי לא לבזבז זמן אם המפתח שגוי.</p>
+<blockquote>
+<p>הכלי תומך גם ב<strong>Azure OpenAI</strong> עבור בתי ספר שמשתמשים בשירותי Microsoft Azure.</p>
+</blockquote>
+<hr>
+<h3>שלב 3 — ייבוא קוד</h3>
+<p>זהו שלב הייבוא הראשי, בו התלמיד מביא את קוד המקור של הפרויקט שלו.</p>
+<p><strong>איך זה עובד:</strong></p>
+<ol>
+<li>התלמיד לוחץ על אזור ההעלאה או גורר ומשחרר את <strong>תיקיית הפרויקט</strong></li>
+<li>הכלי קורא אוטומטית את כל קבצי ה-<code dir="ltr">.cs</code> (וקבצים נלווים כגון <code dir="ltr">.aspx</code>, <code dir="ltr">.cshtml</code>, <code dir="ltr">.config</code>)</li>
+<li>תוך שניות מופיעה רשימה של כל <strong>המחלקות, המתודות, המאפיינים והשדות</strong> שזוהו</li>
+</ol>
+<p><strong>מה התלמיד רואה בפאנל קטעי הקוד:</strong></p>
+<ul>
+<li>כל המחלקות שנותחו, מפורטת לפי שם</li>
+<li>עבור כל מחלקה: המתודות שלה, פרמטרים, סוגי החזר ומגדירי גישה</li>
+<li>תיבת סימון <strong>לכלול או להוציא</strong> כל מחלקה מהתיעוד</li>
+<li>קבצים אוטומטיים (כגון קבצי migration) מוסרים אוטומטית</li>
+</ul>
+<p><strong>סימון פונקציות מפתח (הפונקציות שלי):</strong>
+ברשימת המחלקות, התלמיד יכול לסמן מתודות כ**&quot;קטעי מפתח&quot;** — הפונקציות החשובות ביותר בפרויקט. אלה יטופלו בצורה מיוחדת במסמך הסופי (ראו <a href="#%D7%A4%D7%95%D7%A0%D7%A7%D7%A6%D7%99%D7%95%D7%AA-%D7%9E%D7%A4%D7%AA%D7%97-%D7%94%D7%A4%D7%95%D7%A0%D7%A7%D7%A6%D7%99%D7%95%D7%AA-%D7%A9%D7%9C%D7%99">פונקציות מפתח</a> בהמשך).</p>
+<p>ניתן להוסיף מספר תיקיות אם הפרויקט מפוצל על פני תיקיות שונות.</p>
+<hr>
+<h3>שלב 4 — ייבוא מסד נתונים</h3>
+<p>התלמיד מייבא את מבנה מסד הנתונים שלו, כדי שהכלי יוכל לתעד טבלאות, עמודות וקשרים.</p>
+<p><strong>פורמטים נתמכים:</strong></p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">פורמט</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">פרטים</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">MS Access</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">קובץ <code dir="ltr">.mdb</code> או <code dir="ltr">.accdb</code> — הטבלאות מחולצות אוטומטית</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">SQL Server / T-SQL</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">קובץ <code dir="ltr">.sql</code> — פקודות <code dir="ltr">CREATE TABLE</code> מנותחות אוטומטית</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הזנה ידנית</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">אין צורך בקובץ — מקלידים טבלאות ועמודות ישירות בטופס</td>
+</tr>
+</tbody></table>
+
+<p><strong>מה הכלי מחלץ:</strong></p>
+<ul>
+<li>שמות טבלאות ותיאורים</li>
+<li>שמות עמודות, סוגי נתונים, nullability</li>
+<li>מפתחות ראשיים (PK) וקשרי מפתח זר (FK)</li>
+</ul>
+<p><strong>לאחר ההעלאה</strong>, התלמיד יכול לסקור ולתקן הכל:</p>
+<ul>
+<li>לערוך שמות עמודות או סוגים</li>
+<li>להוסיף ולמחוק עמודות</li>
+<li>לכתוב תיאור קריא לכל טבלה ושדה</li>
+<li>לסמן ולבטל סימון של PK/FK</li>
+</ul>
+<p>נתונים אלה משמשים ליצירת <strong>פרק מסד הנתונים</strong> ואת <strong>דיאגרמת ה-ERD</strong>.</p>
+<hr>
+<h3>שלב 5 — ייבוא צילומי מסך</h3>
+<p>התלמיד מעלה צילומי מסך של האפליקציה שלו לצורך הכללתם בפרק <strong>מדריך המשתמש</strong>.</p>
+<p><strong>איך זה עובד:</strong></p>
+<ul>
+<li>גרור ושחרר קבצי תמונה (PNG, JPG, WEBP) או השתמש בכלי בחירת קבצים</li>
+<li>עד <strong>30 צילומי מסך</strong>, מקסימום 5 MB לכל אחד</li>
+<li><strong>קרוסלת צילומי מסך</strong> נפתחת אוטומטית ומציגה כל תמונה בגודל מלא</li>
+</ul>
+<p><strong>לכל צילום מסך התלמיד ממלא:</strong></p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">שדה</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">תיאור</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">כיתוב</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מה מוצג בצילום המסך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">שם המסך</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">שם של אותו מסך (לדוגמה: "דף כניסה")</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">סוג משתמש</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מנהל / משתמש רגיל / שניהם</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">תגית פרק</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">לאיזה פרק שייך צילום המסך הזה</td>
+</tr>
+</tbody></table>
+
+<p>צילומי המסך מוטמעים ישירות לתוך מסמך ה-Word בפרק מדריך המשתמש, עם הכיתובים שלהם כתוויות איורים.</p>
+<hr>
+<h3>שלב 6 — יצירת המסמך</h3>
+<p>לאחר שכל הנתונים מוכנים, התלמיד לוחץ <strong>&quot;צור מסמך&quot;</strong>. הכלי אז:</p>
+<ol>
+<li>בונה סיכום של הפרויקט (שם, סוג פרויקט, שמות מחלקות, שמות טבלאות, כיתובי צילומי מסך)</li>
+<li>שולח את הקשר של כל פרק לבינה המלאכותית — פרק אחד בכל פעם</li>
+<li>הבינה המלאכותית כותבת את הטקסט של הפרק בעברית או ערבית</li>
+<li><strong>רשימת התקדמות</strong> מציגה את סטטוס יצירת כל פרק בזמן אמת</li>
+<li>היצירה לוקחת בדרך כלל <strong>2–5 דקות</strong> בהתאם לגודל הפרויקט</li>
+</ol>
+<blockquote>
+<p><strong>מה נשלח לבינה המלאכותית:</strong> רק סיכום הפרויקט (שמות מחלקות, חתימות מתודות, מבנה טבלאות) — לא תוכן הקוד עצמו. זה מגן על פרטיות התלמיד.</p>
+<p>אם הגבלת הקצב של API מגיעה, הכלי ממתין באופן אוטומטי ומנסה שוב.</p>
+</blockquote>
+<hr>
+<h3>שלב 7 — סקירת פרקים</h3>
+<p>לאחר סיום היצירה, התלמיד נכנס לשלב הסקירה:</p>
+<ul>
+<li><strong>סרגל צד</strong> מציג את כל 11 הפרקים עם תגיות סטטוס: ✓ הושלם / ⚠ נכשל / ○ ממתין</li>
+<li>לחיצה על פרק מציגה את הטקסט המלא שנוצר בבינה מלאכותית</li>
+<li>אם פרק דורש שיפור, לחיצה על <strong>&quot;צור מחדש&quot;</strong> גורמת לבינה המלאכותית לכתוב אותו שוב</li>
+<li>ניווט בין פרקים מתבצע דרך סרגל הצד</li>
+</ul>
+<p>תצוגה נפרדת של <strong>דיאגרמות</strong> מציגה:</p>
+<ul>
+<li><strong>דיאגרמת ERD</strong> (מסכמת מסד הנתונים)</li>
+<li><strong>דיאגרמת UML class</strong> (ממבנה מחלקות ה-C#)</li>
+</ul>
+<p>שתי הדיאגרמות נכתבות בפורמט Mermaid ומוטמעות כתמונות בתוך מסמך ה-Word.</p>
+<hr>
+<h3>שלב 8 — ייצוא: הורדה</h3>
+<p>השלב הסופי מאפשר לתלמיד להוריד את המסמך המוגמר:</p>
+<ol>
+<li><strong>רשימת ציות</strong> מציגה אילו פרקים מנדטוריים הושלמו ואילו עדיין חסרים</li>
+<li>לאחר שביעות רצון, התלמיד לוחץ <strong>&quot;הורד .docx&quot;</strong></li>
+<li>מסמך ה-Word נבנה לחלוטין בדפדפן</li>
+<li>הקובץ נפתח ישירות ב-Microsoft Word לעריכה סופית</li>
+</ol>
+<p><strong>מה להשלים ב-Word:</strong></p>
+<ul>
+<li>עמוד השער (מספר תעודת זהות, שם בית הספר, שם המורה, תאריך הגשה)</li>
+<li>סעיף ההתבוננות האישית (חייב להיכתב על ידי התלמיד — הבינה המלאכותית אינה יכולה לכתוב זאת לפי כללי משרד החינוך)</li>
+<li>ביבליוגרפיה</li>
+</ul>
+<hr>
+<h2>תכונות תיעוד הקוד</h2>
+<h3>פאנל קטעי הקוד</h3>
+<p><strong>פאנל קטעי הקוד</strong> מופיע לאחר שהתלמיד מעלה את קבצי ה-C# שלו (שלב 3). זהו המקום המרכזי שבו מתקבלות כל ההחלטות הקשורות לקוד.</p>
+<p>הפאנל מציג:</p>
+<ul>
+<li>כל מחלקה שזוהתה בקוד שהועלה</li>
+<li><strong>המתודות</strong>, <strong>המאפיינים</strong> ו<strong>השדות</strong> של כל מחלקה ברשימה קריאה</li>
+<li>מגדירי גישה (<code dir="ltr">public</code>, <code dir="ltr">private</code>, <code dir="ltr">protected</code>)</li>
+<li>סוגי החזר ורשימות פרמטרים עבור כל מתודה</li>
+</ul>
+<p>התלמיד יכול לגלול בכל בסיס הקוד מחלקה אחר מחלקה ולהחליט מה לכלול במסמך שנוצר.</p>
+<hr>
+<h3>פונקציות מפתח (הפונקציות שלי)</h3>
+<p>בתוך פאנל קטעי הקוד, התלמיד יכול לסמן כל מתודה כ**&quot;קטע מפתח&quot;** — אלה הפונקציות שהוא רוצה להדגיש כחלקים החשובים ביותר במימוש שלו. חשוב על כך כ: <strong>&quot;הפונקציות שלי — אלתה שאני כתבתי ורוצה להסביר.&quot;</strong></p>
+<p><strong>איך לסמן פונקציית מפתח:</strong></p>
+<ul>
+<li>ברשימת המחלקות, מוצאים את המתודה ומסמנים את תיבת הסימון <strong>&quot;קטע מפתח&quot;</strong></li>
+<li>ניתן לסמן עד <strong>20 פונקציות</strong></li>
+</ul>
+<p><strong>מה קורה במסמך שנוצר:</strong></p>
+<ul>
+<li>פונקציות מפתח מוצגות עם סמל <strong>★</strong> בפרק המימוש</li>
+<li>כל פונקציית מפתח מקבלת סעיף ייעודי משלה עם:<ul>
+<li>חתימת המתודה המלאה</li>
+<li>ה<strong>הסבר לקריאה</strong> שלה (ראו להלן)</li>
+<li>תיאור תפקידה במערכת</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3>הסבר הקריאה</h3>
+<p>עבור כל פונקציה שנסמנה כקטע מפתח, הבינה המלאכותית מייצרת <strong>הסבר קריאה</strong> — תיאור ברור בשפה פשוטה, כתוב בעברית או ערבית:</p>
+<ul>
+<li><strong>מה הפונקציה עושה</strong> — מטרתה במערכת</li>
+<li><strong>מה היא מקבלת</strong> (פרמטרים) ומה הם מייצגים</li>
+<li><strong>מה היא מחזירה</strong> או אילו שינויים היא גורמת</li>
+<li><strong>מדוע הפונקציה חשובה</strong> לאפליקציה הכוללת</li>
+</ul>
+<p>הסבר זה מוצב ישירות לצד קטע הקוד במסמך, ועושה את הקוד קריא גם לאנשים שאינם מתכנתים.</p>
+<hr>
+<h3>רקורסיה ועץ הרקורסיה</h3>
+<p>אם פרויקט התלמיד כולל <strong>מתודות רקורסיביות</strong> (פונקציות שקוראות לעצמן), הכלי מטפל בהן עם תיעוד מיוחד.</p>
+<p><strong>בפרק המימוש, פונקציות רקורסיביות כוללות:</strong></p>
+<ul>
+<li>תיאור <strong>תבנית הרקורסיה</strong> שנמצאה בקוד</li>
+<li><strong>המקרה הבסיסי</strong> — התנאי שמסיים את הרקורסיה</li>
+<li>ה<strong>מקרה הרקורסיבי</strong> — כיצד הפונקציה קוראת לעצמה שלב אחר שלב</li>
+<li>מטרת הרקורסיה ותוצאתה</li>
+</ul>
+<p><strong>עץ הרקורסיה:</strong>
+מבנה עץ ויזואלי כלול בתיעוד המראה כיצד הקריאות הרקורסיביות מתרחבות מהקריאה הראשונית כלפי מטה דרך כל רמה — לדוגמה, המציג <code dir="ltr">factorial(5) → factorial(4) → factorial(3)</code> וכן הלאה. זה הופך את מבנה האלגוריתם גלוי מיידית לבוחנים.</p>
+<hr>
+<h3>אלגוריתמי מיון</h3>
+<p>אם הפרויקט של התלמיד מכיל <strong>אלגוריתמי מיון</strong> (מיון בועות, מיון בחירה, מיון מהיר, מיון מיזוג וכו&#39;), הבינה המלאכותית תבצע:</p>
+<ul>
+<li>זיהוי לוגיקת המיון מהקוד שהועלה</li>
+<li><strong>שם והסבר</strong> של האלגוריתם שנמצא בשימוש</li>
+<li>תיאור כיצד הנתונים עוברים דרך המיון</li>
+<li>כולל מעקב שלב-אחר-שלב אחר קלט לדוגמה דרך האלגוריתם בתיעוד</li>
+</ul>
+<p>זה מבטיח שפרק המימוש משקף במדויק את העבודה האלגוריתמית שהתלמיד ביצע — אחד מקריטריוני ההערכה המרכזיים.</p>
+<hr>
+<h3>מחסנית הקריאות (Call Stack)</h3>
+<p>עבור פונקציות שקוראות למספר פונקציות אחרות, המסמך כולל סעיף <strong>מחסנית קריאות</strong> המראה את שרשרת הקריאות למתודות:</p>
+<ul>
+<li>ה<strong>מתודה ההתחלתית</strong> (נקודת הכניסה)</li>
+<li>אילו מתודות היא קוראת ובאיזה סדר</li>
+<li>כל קריאות מקוננות בתוך מתודות אלה</li>
+<li>התוצאה הסופית או ערך ההחזר</li>
+</ul>
+<p>סעיף זה מקל על הבוחנים לעקוב אחרי נתיב ביצוע התוכנה ולהבין כיצד חלקי המערכת השונים עובדים יחד.</p>
+<hr>
+<h2>פרטי ייבוא וייצוא</h2>
+<h3>ייבוא — העלאת קבצים</h3>
+<p>הכלי תומך בשלושה זרימות ייבוא נפרדות:</p>
+<p><strong>ייבוא קוד (שלב 3):</strong></p>
+<ul>
+<li>העלאת תיקיית פרויקט C# (כל קבצי ה-<code dir="ltr">.cs</code> מזוהים אוטומטית)</li>
+<li>סוגי קבצים נוספים נתמכים: <code dir="ltr">.aspx</code>, <code dir="ltr">.cshtml</code>, <code dir="ltr">.config</code>, <code dir="ltr">.css</code>, <code dir="ltr">.js</code></li>
+<li>ניתן להוסיף מספר תיקיות לשילוב פרויקט מרובה תיקיות</li>
+<li>עיבוד הקבצים מתבצע לחלוטין בדפדפן — שום דבר לא מועלה לשרת</li>
+</ul>
+<p><strong>ייבוא מסד נתונים (שלב 4):</strong></p>
+<ul>
+<li>קבצי MS Access (<code dir="ltr">.mdb</code>, <code dir="ltr">.accdb</code>) — טבלאות וקשרים מחולצים אוטומטית</li>
+<li>סקריפטי T-SQL של SQL Server (<code dir="ltr">.sql</code>) — פרסור של פקודות <code dir="ltr">CREATE TABLE</code></li>
+<li>אפשרות הזנה ידנית לתלמידים ללא קובץ מסד נתונים</li>
+</ul>
+<p><strong>ייבוא צילומי מסך (שלב 5):</strong></p>
+<ul>
+<li>קבצי תמונה: PNG, JPG, WEBP</li>
+<li>עד 30 תמונות, מקסימום 5 MB לכל אחת</li>
+<li>גרור ושחרר או כלי בחירת קבצים</li>
+<li>עורך קרוסלה לכיתוב</li>
+</ul>
+<hr>
+<h3>ייצוא — הורדת המסמך</h3>
+<p>כשהתלמיד לוחץ על <strong>&quot;הורד .docx&quot;</strong>, הכלי:</p>
+<ol>
+<li>מרכיב את כל טקסט הפרקים שנוצר למסמך Word מבנותי</li>
+<li>מוטמעים מבני מחלקות C# וקטעי קוד עם עיצוב נכון</li>
+<li>מוכנסות דיאגרמות ERD ו-UML כתמונות</li>
+<li>מוטמעים צילומי מסך בפרק מדריך המשתמש</li>
+<li>מוחל עיצוב RTL מלא (מימין לשמאל) לאורך כל המסמך</li>
+<li>בשימוש גופן David MT, גודל 12, רווח שורות 1.5 עם שוליים 2.5 ס&quot;מ</li>
+</ol>
+<p>התוצאה היא קובץ <code dir="ltr">.docx</code> מוכן-לעריכה שנפתח ב-Microsoft Word.</p>
+<hr>
+<h2>הוספת פונקציה ידנית</h2>
+<p>לפעמים תלמיד רוצה לוודא ידנית שפונקציה ספציפית מתועדת — לדוגמה, פונקציה שלא זוהתה אוטומטית או כזו שהוא מחשיב לחשובה ביותר בפרויקט.</p>
+<p><strong>איך לעשות זאת:</strong></p>
+<ol>
+<li>חזרו ל<strong>שלב 3 — העלאת קוד</strong> (לחצו על השלב שהושלם בכותרת האשף)</li>
+<li>ב<strong>פאנל קטעי הקוד</strong>, מצאו את המחלקה שמכילה את הפונקציה</li>
+<li>אם המחלקה הוחרגה, בטלו את סימון <strong>&quot;הוצא&quot;</strong> כדי לכלול אותה</li>
+<li>מצאו את המתודה הספציפית ברשימת המתודות של המחלקה</li>
+<li>סמנו את תיבת הסימון <strong>&quot;קטע מפתח&quot;</strong> לצד אותה מתודה</li>
+<li>המשיכו באשף — הבינה המלאכותית תייצר <strong>הסבר קריאה</strong> ייעודי לאותה פונקציה בפרק המימוש</li>
+</ol>
+<blockquote>
+<p>ניתן להוסיף מספר פונקציות בהתאמה אישית. המקסימום הוא 20 קטעי מפתח סה&quot;כ בכל המחלקות.</p>
+</blockquote>
+<hr>
+<h2>תמיכת שפות</h2>
+<p>AutoProjectBook תומך בשתי שפות פלט, שתיהן עם פריסה מלאה מימין לשמאל (RTL):</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">שפה</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">ממשק</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">מסמך</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">כיוון</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>עברית</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ ממשק בעברית</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ טקסט מסמך בעברית</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">RTL</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ערבית (العربية)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ ממשק בערבית</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ טקסט מסמך בערבית</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">RTL</td>
+</tr>
+</tbody></table>
+
+<p><strong>מה משתנה עם הגדרת השפה:</strong></p>
+<ul>
+<li>כל תוויות ממשק המשתמש, כפתורים והודעות עוברים לשפה שנבחרה</li>
+<li>הבינה המלאכותית כותבת את כל טקסט הפרקים בשפה זו</li>
+<li>כותרות פרקים עוקבות אחר מוסכמות שמות רשמיות של משרד החינוך בשפת היעד</li>
+<li>מסמך ה-Word מעוצב עם כיוון פסקה RTL לאורכו</li>
+<li>מספרים ושורות קוד שומרים על כיוון שמאל-לימין בתוך טקסט RTL (כנהוג)</li>
+</ul>
+<p>ניתן לשנות שפה בכל שלב על ידי חזרה לשלב 1 (לחיצה על מעגל השלב בכותרת).</p>
+<hr>
+<h2>כל התכונות הפעילות</h2>
+<p>התכונות הבאות מיושמות לחלוטין ופעילות ב-AutoProjectBook:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">תכונה</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">תיאור</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>בחירת שפה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">בחירה בין עברית לערבית בהפעלה</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ממשק RTL</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">פריסה מימין לשמאל מלאה לשתי השפות</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>הזנת שם תלמיד</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">בשימוש בכותרת המסמך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>הגדרת מפתח Gemini API</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">עם כפתור בדיקה בזמן חי וקלט מוסתר</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תמיכת Azure OpenAI</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ספק AI חלופי לשימוש בביה"ס</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>בחירת מודל Gemini</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">בחירה ממודלים ידועים או הזנת שם מודל מותאם</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>בחירת סוג פרויקט</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ASP.NET / Blazor / WPF / WinForms / Android / אחר</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>העלאת תיקיית קוד C#</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">גרור ושחרר או כלי בחירת תיקייה</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>חילוץ מחלקות ומתודות C#</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ניתוח אוטומטי של כל קבצי ה-<code dir="ltr">.cs</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>פאנל קטעי הקוד</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">צפייה בכל המחלקות והמתודות שנותחו</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>פקדי כלול/הוצא מחלקה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הסרת קבצים שנוצרו אוטומטית או לא רלוונטיים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>סימון קטעי מפתח (הפונקציות שלי)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">סימון עד 20 פונקציות לתיעוד מפורט</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תמיכה בפרויקט רב-תיקיות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">שילוב קבצים ממספר תיקיות</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>העלאת קובץ מסד נתונים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">MS Access <code dir="ltr">.mdb/.accdb</code> ו-SQL Server <code dir="ltr">.sql</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>הזנת מסד נתונים ידנית</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הקלדת טבלאות ועמודות אם אין קובץ מסד נתונים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>עורך סקירת טבלאות ועמודות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">עריכת הסכמה שחולצה לפני יצירת המסמך</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>העלאת צילומי מסך</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">PNG, JPG, WEBP — עד 30 תמונות</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>עורך קרוסלת צילומי מסך</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">תצוגה בגודל מלא עם הזנת כיתוב ומטא-נתונים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>יצירת מסמך AI</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">11 פרקים נוצרים אוטומטית באמצעות Gemini או Azure</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>התקדמות יצירה בזמן אמת</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">רשימת התקדמות פרק-אחר-פרק</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ניסיון חוזר אוטומטי בהגבלת קצב</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ניסיון חוזר עד 3 פעמים עם עיכוב</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תיעוד רקורסיה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">AI מתאר אלגוריתמים רקורסיביים עם מקרה בסיסי ורקורסיבי</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>עץ רקורסיה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">עץ ויזואלי של קריאות רקורסיביות בפרק המימוש</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תיעוד אלגוריתמי מיון</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">AI מזהה ומסביר לוגיקת מיון</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תיעוד מחסנית קריאות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">שרשראות קריאות מתודות מתועדות בפרק המימוש</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>הסבר קריאה (לפי פונקציה)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הסבר AI עבור כל קטע מפתח</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>דף סקירת פרקים</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">קריאת טקסט שנוצר, ניווט בין פרקים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>יצירה מחדש של פרק</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הפעלה מחדש של AI עבור כל פרק בנפרד</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>יצירת דיאגרמת ERD</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">דיאגרמת קשר-ישות מסכמת מסד הנתונים (Mermaid)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>יצירת דיאגרמת UML class</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">דיאגרמת מחלקות ממבנה קוד C# (Mermaid)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תצוגה מקדימה של דיאגרמות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">צפייה בדיאגרמות Mermaid שנוצרו לפני הייצוא</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>רשימת ציות</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">בדיקת אילו פרקים מנדטוריים הושלמו לפני ההורדה</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ייצוא Word (.docx)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">הורדת מסמך Word מעוצב ב-RTL</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>תיעוד מחלקות C# ב-Word</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">מחלקות ומתודות מעוצבות ב-Courier New בפרק המימוש</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>הטמעת צילומי מסך ב-Word</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">צילומי מסך כלולים בפרק מדריך המשתמש עם כיתובים</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>ניווט שלבים לחיץ</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">קפיצה לכל שלב שהושלם מכותרת האשף</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>טיפול שגיאות ותיבות הודעה</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">משוב ברור על שגיאות העלאה וכשלי API</td>
+</tr>
+</tbody></table>
+
+<hr>
+<p><em>מדריך זה הוכן כדי לעזור למורים להבין, להנחות ולהעריך את שימוש התלמידים ב-AutoProjectBook.</em></p>
+<p><em>לתמיכה טכנית או הצעות, פנו לרכז הנדסת התוכנה בבית הספר.</em></p>
+
+
+  </main>
+</body>
+</html>

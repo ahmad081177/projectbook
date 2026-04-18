@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RecursiQuest - دليل المعلم</title>
+  <style>
+:root {
+  --bg: #f5f2ea;
+  --surface: #fffdf8;
+  --ink: #1f1f1f;
+  --line: #dfd7c8;
+  --accent: #0f766e;
+  --accent-soft: #dff4f2;
+  --code-bg: #f3efe5;
+  --table-head: #f0e6d2;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", "Noto Sans", Tahoma, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%, #f8e7c2 0%, transparent 35%),
+    radial-gradient(circle at 88% 0%, #d6efe9 0%, transparent 40%),
+    var(--bg);
+  color: var(--ink);
+  line-height: 1.75;
+}
+main {
+  max-width: 980px;
+  margin: 2rem auto 3rem;
+  padding: 2rem clamp(1rem, 2.8vw, 2.25rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+h1, h2, h3, h4 { line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.6em; }
+h1 { margin-top: 0.25em; padding-bottom: 0.6rem; border-bottom: 3px solid var(--accent-soft); }
+h2 { border-inline-start: 5px solid var(--accent); padding-inline-start: 0.7rem; }
+a { color: #0d5c56; text-underline-offset: 2px; }
+a:hover { color: #094944; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+blockquote {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-inline-start: 4px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+code {
+  font-family: Consolas, "Cascadia Code", monospace;
+  background: var(--code-bg);
+  border: 1px solid #e7ddcb;
+  padding: 0.08rem 0.35rem;
+  border-radius: 5px;
+}
+pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: #24292e;
+  color: #f7f7f7;
+  border-radius: 10px;
+}
+pre code { background: transparent; border: 0; color: inherit; padding: 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.97rem;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.62rem 0.7rem;
+  vertical-align: top;
+}
+th { background: var(--table-head); font-weight: 700; }
+ul, ol { padding-inline-start: 1.25rem; }
+li { margin-bottom: 0.32rem; }
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  main { margin: 1rem 0.7rem 1.3rem; padding: 1rem; border-radius: 12px; }
+  table { font-size: 0.92rem; display: block; overflow-x: auto; white-space: nowrap; }
+}
+  </style>
+</head>
+<body>
+  <main>
+<h1>AutoProjectBook — دليل المعلم</h1>
+<p><strong>الإصدار 1.0 | أبريل 2026</strong></p>
+<hr>
+<h2>جدول المحتويات</h2>
+<ol>
+<li><a href="#%D9%85%D8%A7-%D9%87%D9%88-autoprojectbook">ما هو AutoProjectBook؟</a></li>
+<li><a href="#%D9%84%D9%85%D9%86-%D9%87%D9%88-%D9%85%D8%AE%D8%B5%D8%B5">لمن هو مخصص؟</a></li>
+<li><a href="#%D9%85%D8%A7-%D8%A7%D9%84%D8%B0%D9%8A-%D9%8A%D8%AD%D8%AA%D9%88%D9%8A%D9%87-%D8%A7%D9%84%D9%85%D8%B3%D8%AA%D9%86%D8%AF-%D8%A7%D9%84%D9%85%D9%86%D8%B4%D8%A3">ما الذي يحتويه المستند المُنشأ؟</a></li>
+<li><a href="#%D9%83%D9%8A%D9%81%D9%8A%D8%A9-%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%AE%D8%AF%D8%A7%D9%85--%D8%AE%D8%B7%D9%88%D8%A9-%D8%A8%D8%AE%D8%B7%D9%88%D8%A9">كيفية الاستخدام — خطوة بخطوة</a><ul>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-1--%D8%A7%D8%AE%D8%AA%D9%8A%D8%A7%D8%B1-%D8%A7%D9%84%D9%84%D8%BA%D8%A9">الخطوة 1 — اختيار اللغة</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-2--%D8%A7%D9%84%D8%A5%D8%B9%D8%AF%D8%A7%D8%AF">الخطوة 2 — الإعداد</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-3--%D8%A7%D8%B3%D8%AA%D9%8A%D8%B1%D8%A7%D8%AF-%D8%B1%D9%81%D8%B9-%D8%A7%D9%84%D9%83%D9%88%D8%AF">الخطوة 3 — استيراد: رفع الكود</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-4--%D8%A7%D8%B3%D8%AA%D9%8A%D8%B1%D8%A7%D8%AF-%D8%B1%D9%81%D8%B9-%D9%82%D8%A7%D8%B9%D8%AF%D8%A9-%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA">الخطوة 4 — استيراد: رفع قاعدة البيانات</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-5--%D8%A7%D8%B3%D8%AA%D9%8A%D8%B1%D8%A7%D8%AF-%D9%84%D9%82%D8%B7%D8%A7%D8%AA-%D8%A7%D9%84%D8%B4%D8%A7%D8%B4%D8%A9">الخطوة 5 — استيراد: لقطات الشاشة</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-6--%D8%A5%D9%86%D8%B4%D8%A7%D8%A1-%D8%A7%D9%84%D9%85%D8%B3%D8%AA%D9%86%D8%AF">الخطوة 6 — إنشاء المستند</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-7--%D9%85%D8%B1%D8%A7%D8%AC%D8%B9%D8%A9-%D8%A7%D9%84%D9%81%D8%B5%D9%88%D9%84">الخطوة 7 — مراجعة الفصول</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A9-8--%D8%A7%D9%84%D8%AA%D8%B5%D8%AF%D9%8A%D8%B1-%D8%A7%D9%84%D8%AA%D9%86%D8%B2%D9%8A%D9%84">الخطوة 8 — التصدير: التنزيل</a></li>
+</ul>
+</li>
+<li><a href="#%D9%85%D9%8A%D8%B2%D8%A7%D8%AA-%D8%AA%D9%88%D8%AB%D9%8A%D9%82-%D8%A7%D9%84%D9%83%D9%88%D8%AF">ميزات توثيق الكود</a><ul>
+<li><a href="#%D9%84%D9%88%D8%AD%D8%A9-%D9%85%D9%82%D8%A7%D8%B7%D8%B9-%D8%A7%D9%84%D9%83%D9%88%D8%AF">لوحة مقاطع الكود</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AF%D9%88%D8%A7%D9%84-%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9-%D8%AF%D9%88%D8%A7%D9%84%D9%8A-%D8%A3%D9%86%D8%A7">الدوال الرئيسية (دوالي أنا)</a></li>
+<li><a href="#%D8%B4%D8%B1%D8%AD-%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%AF%D8%B9%D8%A7%D8%A1">شرح الاستدعاء</a></li>
+<li><a href="#%D8%A7%D9%84%D8%AA%D9%83%D8%B1%D8%A7%D8%B1-%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D8%AF%D9%8A-%D9%88%D8%B4%D8%AC%D8%B1%D8%A9-%D8%A7%D9%84%D8%AA%D9%83%D8%B1%D8%A7%D8%B1">التكرار التعاودي وشجرة التكرار</a></li>
+<li><a href="#%D8%AE%D9%88%D8%A7%D8%B1%D8%B2%D9%85%D9%8A%D8%A7%D8%AA-%D8%A7%D9%84%D9%81%D8%B1%D8%B2">خوارزميات الفرز</a></li>
+<li><a href="#%D9%85%D9%83%D8%AF%D8%B3-%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D8%AF%D8%B9%D8%A7%D8%A1%D8%A7%D8%AA-call-stack">مكدس الاستدعاءات (Call Stack)</a></li>
+</ul>
+</li>
+<li><a href="#%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%A7%D8%B3%D8%AA%D9%8A%D8%B1%D8%A7%D8%AF-%D9%88%D8%A7%D9%84%D8%AA%D8%B5%D8%AF%D9%8A%D8%B1">تفاصيل الاستيراد والتصدير</a></li>
+<li><a href="#%D8%A5%D8%B6%D8%A7%D9%81%D8%A9-%D8%AF%D8%A7%D9%84%D8%A9-%D9%8A%D8%AF%D9%88%D9%8A%D9%8B%D8%A7">إضافة دالة يدويًا</a></li>
+<li><a href="#%D8%AF%D8%B9%D9%85-%D8%A7%D9%84%D9%84%D8%BA%D8%A7%D8%AA">دعم اللغات</a></li>
+<li><a href="#%D8%AC%D9%85%D9%8A%D8%B9-%D8%A7%D9%84%D9%85%D9%8A%D8%B2%D8%A7%D8%AA-%D8%A7%D9%84%D8%B9%D8%A7%D9%85%D9%84%D8%A9">جميع الميزات العاملة</a></li>
+</ol>
+<hr>
+<h2>ما هو AutoProjectBook؟</h2>
+<p><strong>AutoProjectBook</strong> هو أداة مجانية تعمل عبر المتصفح، مصممة لمساعدة طلاب تخصص هندسة البرمجيات (5 وحدات دراسية) في إعداد <strong>كتاب المشروع (ספר פרויקט)</strong> الإلزامي — التوثيق الرسمي المطلوب من وزارة التربية والتعليم الإسرائيلية.</p>
+<p>بدلاً من كتابة وثيقة تتراوح بين 40 و60 صفحة من الصفر، يقوم الطالب برفع ملفات مشروعه المكتمل، مخطط قاعدة البيانات، ولقطات الشاشة — وتقوم الأداة <strong>تلقائيًا بإنشاء مستند Word كامل ومنسق</strong> (docx.) باللغة العبرية أو العربية، جاهزًا للمراجعة والإتمام والتسليم.</p>
+<p>تستخدم الأداة <strong>الذكاء الاصطناعي (Google Gemini أو Azure OpenAI)</strong> لتحليل بنية كود الطالب وكتابة نص طبيعي ومناسب لكل فصل تلقائيًا. لا يغادر أي كود كامل المتصفح — يُرسَل إلى الذكاء الاصطناعي أسماء الفئات وتوقيعات الطرق وبنية الجداول فقط.</p>
+<blockquote>
+<p><strong>نقطة مهمة للمعلمين:</strong> تنتج الأداة حوالي 80% من المستند تلقائيًا. لا يزال الطالب بحاجة إلى إكمال قسم التأمل الشخصي بنفسه وإضافة اسمه إلى صفحة الغلاف في Microsoft Word قبل التسليم.</p>
+</blockquote>
+<hr>
+<h2>لمن هو مخصص؟</h2>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">المستخدم</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الدور</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>الطلاب (المستخدم الأساسي)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">الصفوف 11-12، تخصص هندسة البرمجيات. أتموا مشروع C# الخاص بهم ويحتاجون إلى إنتاج توثيق رسمي.</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>المعلمون</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">يرشدون الطلاب خلال العملية، ويتحققون من وجود جميع الأقسام المطلوبة، ويقيّمون المستند المُسلَّم.</td>
+</tr>
+</tbody></table>
+
+<p>تعمل الأداة بالكامل في المتصفح — لا حاجة لأي تثبيت. يمكن للطلاب استخدامها من أي جهاز كمبيوتر في المدرسة أو حاسوب شخصي متصل بالإنترنت (يُنصح باستخدام Chrome أو Edge).</p>
+<hr>
+<h2>ما الذي يحتويه المستند المُنشأ؟</h2>
+<p>تُنشئ الأداة مستند Word منظمًا وفقًا لإرشادات وزارة التربية والتعليم. يتم إنشاء جميع الفصول الإلزامية تلقائيًا:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">#</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الفصل</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">ما يحتويه</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">1</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>المقدمة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">أهداف المشروع، الجمهور المستهدف، سبب الحاجة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">2</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>نظرة عامة على التقنيات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">الأطر واللغات والأدوات المستخدمة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">3</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تحليل النظام</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">المتطلبات الوظيفية وغير الوظيفية</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">4</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>قاعدة البيانات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تفاصيل الجداول، الأعمدة، مخطط ERD</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">5</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تنفيذ جانب الخادم</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">فئات منطق الأعمال، مقاطع الكود الرئيسية، شرح الطرق</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">6</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تنفيذ جانب العميل</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">بنية واجهة المستخدم، المكونات، الشاشات</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">7</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>دليل المستخدم</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تعليمات خطوة بخطوة مع لقطات الشاشة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">8</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>التأمل الذاتي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تأمل الطالب الشخصي (يُكمله الطالب في Word)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">9</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>الصعوبات والحلول</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">التحديات التقنية وكيف تم التعامل معها</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">10</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>التطويرات المستقبلية</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">التحسينات المقترحة والخطوات التالية</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">11</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>الملاحق</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">توثيق إضافي للفئات</td>
+</tr>
+</tbody></table>
+
+<hr>
+<h2>كيفية الاستخدام — خطوة بخطوة</h2>
+<p>الأداة منظمة كمعالج (Wizard) من 8 خطوات. يُظهر شريط التقدم في الأعلى الخطوة الحالية. يمكن النقر على الخطوات المكتملة للعودة وإجراء تعديلات.</p>
+<hr>
+<h3>الخطوة 1 — اختيار اللغة</h3>
+<p>تطلب الشاشة الأولى من الطالب اختيار لغة الإخراج للمستند المُنشأ:</p>
+<ul>
+<li><strong>عברית (العبرية)</strong> — سيُكتب المستند بالكامل باللغة العبرية</li>
+<li><strong>العربية</strong> — سيُكتب المستند بالكامل باللغة العربية</li>
+</ul>
+<p>تتحول واجهة التطبيق أيضًا إلى اللغة المختارة مع دعم كامل للتخطيط من اليمين إلى اليسار (RTL).</p>
+<hr>
+<h3>الخطوة 2 — الإعداد</h3>
+<p>في هذه الخطوة، يملأ الطالب المعلومات الأساسية اللازمة للبدء:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الحقل</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الوصف</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>اسم الطالب</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">يظهر في رأس المستند</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>مفتاح Gemini API</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مطلوب لإنشاء النصوص بالذكاء الاصطناعي. المفتاح يبقى في المتصفح فقط.</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>نموذج الذكاء الاصطناعي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">اختيار نموذج Gemini — الافتراضي: <code dir="ltr">gemini-1.5-pro</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>نوع المشروع</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ASP.NET / Blazor / WPF / Windows Forms / Android / أخرى</td>
+</tr>
+</tbody></table>
+
+<p>زر <strong>&quot;اختبر المفتاح&quot;</strong> يتحقق من مفتاح API قبل المتابعة — لتجنب إضاعة الوقت إذا كان المفتاح خاطئًا.</p>
+<blockquote>
+<p>تدعم الأداة أيضًا <strong>Azure OpenAI</strong> للمدارس التي تستخدم خدمات Microsoft Azure.</p>
+</blockquote>
+<hr>
+<h3>الخطوة 3 — استيراد: رفع الكود</h3>
+<p>هذه هي خطوة الاستيراد الرئيسية، حيث يُحضر الطالب كود المصدر لمشروعه.</p>
+<p><strong>كيف يعمل:</strong></p>
+<ol>
+<li>ينقر الطالب على منطقة الرفع أو يسحب ويُسقط <strong>مجلد المشروع</strong></li>
+<li>تقرأ الأداة تلقائيًا جميع ملفات <code dir="ltr">.cs</code> (وملفات <code dir="ltr">.aspx</code> و<code dir="ltr">.cshtml</code> و<code dir="ltr">.config</code>)</li>
+<li>في غضون ثوانٍ تظهر قائمة بجميع <strong>الفئات والطرق والخصائص والحقول</strong> المكتشفة</li>
+</ol>
+<p><strong>ما يراه الطالب في لوحة مقاطع الكود:</strong></p>
+<ul>
+<li>جميع الفئات المحللة مدرجة حسب الاسم</li>
+<li>لكل فئة: طرقها، معاملاتها، أنواع الإرجاع، ومحددات الوصول</li>
+<li>مربع اختيار <strong>لتضمين أو استبعاد</strong> كل فئة من التوثيق</li>
+<li>الملفات التي تُولَّد تلقائيًا تُستبعد بشكل تلقائي</li>
+</ul>
+<p><strong>تمييز الدوال الرئيسية (دوالي أنا):</strong>
+في قائمة الفئات، يمكن للطالب تمييز الطرق كـ**&quot;مقاطع رئيسية&quot;** — الدوال الأكثر أهمية في مشروعه. هذه ستُعامَل بشكل خاص في المستند النهائي (راجع <a href="#%D8%A7%D9%84%D8%AF%D9%88%D8%A7%D9%84-%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9-%D8%AF%D9%88%D8%A7%D9%84%D9%8A-%D8%A3%D9%86%D8%A7">الدوال الرئيسية</a> أدناه).</p>
+<p>يمكن إضافة مجلدات متعددة إذا كان المشروع موزعًا على عدة مجلدات.</p>
+<hr>
+<h3>الخطوة 4 — استيراد: رفع قاعدة البيانات</h3>
+<p>يستورد الطالب بنية قاعدة بياناته حتى تتمكن الأداة من توثيق الجداول والأعمدة والعلاقات.</p>
+<p><strong>التنسيقات المدعومة:</strong></p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">التنسيق</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">التفاصيل</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">MS Access</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ملف <code dir="ltr">.mdb</code> أو <code dir="ltr">.accdb</code> — تُستخرج الجداول تلقائيًا</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">SQL Server / T-SQL</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ملف <code dir="ltr">.sql</code> — يتم تحليل عبارات <code dir="ltr">CREATE TABLE</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">إدخال يدوي</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">لا حاجة لملف — يكتب الجداول والأعمدة مباشرة في النموذج</td>
+</tr>
+</tbody></table>
+
+<p><strong>ما تستخرجه الأداة:</strong></p>
+<ul>
+<li>أسماء الجداول والأوصاف</li>
+<li>أسماء الأعمدة وأنواع البيانات وقابلية الإهمال (nullability)</li>
+<li>المفاتيح الأساسية (PK) وعلاقات المفاتيح الخارجية (FK)</li>
+</ul>
+<p><strong>بعد الرفع</strong>، يمكن للطالب مراجعة وتصحيح كل شيء:</p>
+<ul>
+<li>تعديل أسماء الأعمدة أو أنواعها</li>
+<li>إضافة أعمدة أو حذفها</li>
+<li>كتابة وصف مقروء لكل جدول وحقل</li>
+<li>تمييز أو إلغاء تمييز PK/FK</li>
+</ul>
+<p>تُستخدم هذه البيانات المراجَعة لإنشاء <strong>فصل قاعدة البيانات</strong> و<strong>مخطط ERD</strong>.</p>
+<hr>
+<h3>الخطوة 5 — استيراد: لقطات الشاشة</h3>
+<p>يرفع الطالب لقطات شاشة من تطبيقه لتضمينها في فصل <strong>دليل المستخدم</strong>.</p>
+<p><strong>كيف يعمل:</strong></p>
+<ul>
+<li>يسحب ويُسقط ملفات الصور (PNG, JPG, WEBP) أو يستخدم أداة اختيار الملفات</li>
+<li>حتى <strong>30 لقطة شاشة</strong>، بحد أقصى 5 ميغابايت لكل منها</li>
+<li>تفتح <strong>عارضة لقطات الشاشة (Carousel)</strong> تلقائيًا لعرض كل صورة بحجمها الكامل</li>
+</ul>
+<p><strong>لكل لقطة شاشة يملأ الطالب:</strong></p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الحقل</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الوصف</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">التسمية التوضيحية</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ما يُظهره هذا اللقطة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">اسم الشاشة</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">اسم هذه الشاشة (مثل: "صفحة تسجيل الدخول")</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">نوع المستخدم</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مدير / مستخدم عادي / كلاهما</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تاغ الفصل</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">أي فصل تنتمي إليه هذه اللقطة</td>
+</tr>
+</tbody></table>
+
+<p>تُدمج لقطات الشاشة مباشرةً في مستند Word في فصل دليل المستخدم، مع تسمياتها التوضيحية كعناوين للأشكال.</p>
+<hr>
+<h3>الخطوة 6 — إنشاء المستند</h3>
+<p>بمجرد أن تصبح جميع المدخلات جاهزة، ينقر الطالب على <strong>&quot;إنشاء&quot;</strong>. تعمل الأداة بعد ذلك على:</p>
+<ol>
+<li>بناء ملخص للمشروع (الاسم، نوع المشروع، أسماء الفئات، أسماء الجداول، تسميات لقطات الشاشة)</li>
+<li>إرسال سياق كل فصل إلى الذكاء الاصطناعي — فصل واحد في كل مرة</li>
+<li>يكتب الذكاء الاصطناعي نص الفصل بالعربية أو العبرية</li>
+<li>تُعرض <strong>قائمة التقدم</strong> حالة إنشاء كل فصل في الوقت الفعلي</li>
+<li>يستغرق الإنشاء عادةً <strong>2-5 دقائق</strong> حسب حجم المشروع</li>
+</ol>
+<blockquote>
+<p><strong>ما يُرسَل إلى الذكاء الاصطناعي:</strong> ملخص المشروع فقط (أسماء الفئات، توقيعات الطرق، بنية الجداول) — لا محتوى الكود الفعلي. هذا يحمي خصوصية الطالب.</p>
+<p>إذا تم الوصول إلى حد معدل الاستدعاء، تنتظر الأداة تلقائيًا وتُعيد المحاولة.</p>
+</blockquote>
+<hr>
+<h3>الخطوة 7 — مراجعة الفصول</h3>
+<p>بعد اكتمال الإنشاء، يدخل الطالب في مرحلة المراجعة:</p>
+<ul>
+<li>يسرد <strong>شريط جانبي</strong> جميع الفصول الـ11 مع شارات الحالة: ✓ مكتمل / ⚠ فشل / ○ معلق</li>
+<li>النقر على أي فصل يعرض النص الكامل الذي أنشأه الذكاء الاصطناعي</li>
+<li>إذا كان الفصل يحتاج إلى تحسين، يُنقر على <strong>&quot;أعد الإنشاء&quot;</strong> لطلب إعادة كتابته من الذكاء الاصطناعي</li>
+<li>التنقل بين الفصول يتم من خلال الشريط الجانبي</li>
+</ul>
+<p>تعرض <strong>صفحة المخططات</strong> المنفصلة:</p>
+<ul>
+<li><strong>مخطط ERD</strong> (من مخطط قاعدة البيانات)</li>
+<li><strong>مخطط UML للفئات</strong> (من بنية فئات C#)</li>
+</ul>
+<p>كلا المخططين مكتوبان بصيغة Mermaid ومدمجان كصور داخل مستند Word.</p>
+<hr>
+<h3>الخطوة 8 — التصدير: التنزيل</h3>
+<p>تتيح الخطوة الأخيرة للطالب تنزيل مستنده النهائي:</p>
+<ol>
+<li>تُعرض <strong>قائمة التحقق من الامتثال</strong> الفصول الإلزامية المكتملة والناقصة</li>
+<li>بمجرد الرضا، ينقر الطالب على <strong>&quot;تنزيل .docx&quot;</strong></li>
+<li>يُجمَّع مستند Word بالكامل في المتصفح</li>
+<li>يفتح الملف مباشرةً في Microsoft Word للتحرير النهائي</li>
+</ol>
+<p><strong>ما يجب إكماله في Word:</strong></p>
+<ul>
+<li>صفحة الغلاف (رقم الهوية، اسم المدرسة، اسم المعلم، تاريخ التسليم)</li>
+<li>قسم التأمل الشخصي (يجب أن يكتبه الطالب — لا يمكن للذكاء الاصطناعي كتابته وفق قواعد وزارة التربية)</li>
+<li>قائمة المراجع</li>
+</ul>
+<hr>
+<h2>ميزات توثيق الكود</h2>
+<h3>لوحة مقاطع الكود</h3>
+<p>تظهر <strong>لوحة مقاطع الكود</strong> بعد أن يرفع الطالب ملفات C# الخاصة به (الخطوة 3). وهي المكان المركزي لاتخاذ جميع القرارات المتعلقة بالكود.</p>
+<p>تُعرض اللوحة:</p>
+<ul>
+<li>كل فئة تم اكتشافها في الكود المرفوع</li>
+<li><strong>الطرق</strong> و<strong>الخصائص</strong> و<strong>الحقول</strong> الخاصة بكل فئة في قائمة مقروءة</li>
+<li>محددات الوصول (<code dir="ltr">public</code>, <code dir="ltr">private</code>, <code dir="ltr">protected</code>)</li>
+<li>أنواع الإرجاع وقوائم المعاملات لكل طريقة</li>
+</ul>
+<p>يمكن للطالب التمرير عبر قاعدة الكود بأكملها فئة تلو الأخرى، مقررًا ما يجب تضمينه في المستند المُنشأ.</p>
+<hr>
+<h3>الدوال الرئيسية (دوالي أنا)</h3>
+<p>داخل لوحة مقاطع الكود، يمكن للطالب تمييز أي طريقة كـ**&quot;مقطع رئيسي&quot;** — هذه هي الدوال التي يريد إبرازها كأهم أجزاء تطبيقه. فكر في الأمر كـ: <strong>&quot;دوالي أنا — أهم الدوال التي كتبتها وأريد شرحها.&quot;</strong></p>
+<p><strong>كيفية تمييز دالة رئيسية:</strong></p>
+<ul>
+<li>في قائمة الفئات، ابحث عن الطريقة وضع علامة في مربع اختيار <strong>&quot;مقطع رئيسي&quot;</strong></li>
+<li>يمكن تمييز ما يصل إلى <strong>20 دالة</strong></li>
+</ul>
+<p><strong>ما يحدث في المستند المُنشأ:</strong></p>
+<ul>
+<li>تُعرض الدوال الرئيسية برمز <strong>★</strong> في فصل التنفيذ</li>
+<li>تحصل كل دالة رئيسية على قسمها الخاص المخصص يحتوي على:<ul>
+<li>توقيع الطريقة الكامل</li>
+<li><strong>شرح الاستدعاء</strong> الخاص بها (انظر أدناه)</li>
+<li>وصف دورها في النظام</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3>شرح الاستدعاء</h3>
+<p>لكل دالة يتم تمييزها كمقطع رئيسي، يُنشئ الذكاء الاصطناعي <strong>شرح الاستدعاء</strong> — وصف واضح بلغة بسيطة مكتوب بالعربية أو العبرية:</p>
+<ul>
+<li><strong>ما تفعله الدالة</strong> — غرضها في النظام</li>
+<li><strong>ما يستقبله</strong> (المعاملات) وما تمثله</li>
+<li><strong>ما تُرجعه</strong> أو ما التغييرات التي تحدثها</li>
+<li><strong>لماذا هذه الدالة مهمة</strong> للتطبيق الكلي</li>
+</ul>
+<p>يُوضع هذا الشرح مباشرةً بجانب أو أسفل مقطع الكود في المستند، مما يجعل الكود مفهومًا حتى لغير المبرمجين.</p>
+<hr>
+<h3>التكرار التعاودي وشجرة التكرار</h3>
+<p>إذا كان مشروع الطالب يتضمن <strong>طرقًا تعاودية</strong> (دوال تستدعي نفسها)، تتعامل الأداة معها بتوثيق خاص.</p>
+<p><strong>في فصل التنفيذ، تتضمن الدوال التعاودية:</strong></p>
+<ul>
+<li>وصف <strong>نمط التكرار التعاودي</strong> المستخدم في الكود</li>
+<li><strong>الحالة الأساسية</strong> — الشرط الذي يوقف التكرار</li>
+<li><strong>الحالة التعاودية</strong> — كيف تستدعي الدالة نفسها خطوة بخطوة</li>
+<li>غرض التكرار التعاودي ونتيجته</li>
+</ul>
+<p><strong>شجرة التكرار التعاودي:</strong>
+يُضمَّن هيكل شجري مرئي في التوثيق يُظهر كيف تتوسع الاستدعاءات التعاودية من الاستدعاء الأولي إلى الأسفل عبر كل مستوى — على سبيل المثال، يُظهر <code dir="ltr">factorial(5) → factorial(4) → factorial(3)</code> وهكذا. هذا يجعل بنية الخوارزمية مرئية فورًا للمقيّمين.</p>
+<hr>
+<h3>خوارزميات الفرز</h3>
+<p>إذا كان مشروع الطالب يحتوي على <strong>خوارزميات فرز</strong> (فرز الفقاعات، فرز الاختيار، الفرز السريع، فرز الدمج، إلخ)، سيقوم الذكاء الاصطناعي بـ:</p>
+<ul>
+<li>تحديد منطق الفرز من الكود المرفوع</li>
+<li><strong>تسمية وشرح</strong> الخوارزمية المستخدمة</li>
+<li>وصف كيفية تدفق البيانات عبر عملية الفرز</li>
+<li>تضمين تتبع خطوة بخطوة لعينة إدخال عبر الخوارزمية في التوثيق</li>
+</ul>
+<p>هذا يضمن أن فصل التنفيذ يعكس بدقة العمل الخوارزمي الذي قام به الطالب — أحد معايير التقييم الرئيسية.</p>
+<hr>
+<h3>مكدس الاستدعاءات (Call Stack)</h3>
+<p>بالنسبة للدوال التي تستدعي عدة دوال أخرى، يتضمن المستند قسم <strong>مكدس الاستدعاءات</strong> يُظهر سلسلة استدعاءات الطرق:</p>
+<ul>
+<li><strong>الطريقة الابتدائية</strong> (نقطة الدخول)</li>
+<li>الطرق التي تستدعيها وبأي ترتيب</li>
+<li>أي استدعاءات متداخلة داخل تلك الطرق</li>
+<li>النتيجة النهائية أو قيمة الإرجاع</li>
+</ul>
+<p>يُسهّل هذا القسم على المقيّمين متابعة مسار تنفيذ البرنامج وفهم كيفية عمل الأجزاء المختلفة من النظام معًا.</p>
+<hr>
+<h2>تفاصيل الاستيراد والتصدير</h2>
+<h3>الاستيراد — رفع الملفات</h3>
+<p>تدعم الأداة ثلاثة تدفقات استيراد منفصلة:</p>
+<p><strong>استيراد الكود (الخطوة 3):</strong></p>
+<ul>
+<li>رفع مجلد مشروع C# (يتم اكتشاف جميع ملفات <code dir="ltr">.cs</code> تلقائيًا)</li>
+<li>أنواع ملفات إضافية مدعومة: <code dir="ltr">.aspx</code>, <code dir="ltr">.cshtml</code>, <code dir="ltr">.config</code>, <code dir="ltr">.css</code>, <code dir="ltr">.js</code></li>
+<li>يمكن إضافة مجلدات متعددة لدمج مشروع متعدد المجلدات</li>
+<li>تتم معالجة الملفات بالكامل في المتصفح — لا شيء يُرفع إلى خادم</li>
+</ul>
+<p><strong>استيراد قاعدة البيانات (الخطوة 4):</strong></p>
+<ul>
+<li>ملفات MS Access (<code dir="ltr">.mdb</code>, <code dir="ltr">.accdb</code>) — تُستخرج الجداول والعلاقات تلقائيًا</li>
+<li>سكريبتات T-SQL لـ SQL Server (<code dir="ltr">.sql</code>) — تحليل عبارات <code dir="ltr">CREATE TABLE</code></li>
+<li>خيار الإدخال اليدوي للطلاب الذين ليس لديهم ملف قاعدة بيانات</li>
+</ul>
+<p><strong>استيراد لقطات الشاشة (الخطوة 5):</strong></p>
+<ul>
+<li>ملفات الصور: PNG, JPG, WEBP</li>
+<li>حتى 30 صورة، بحد أقصى 5 ميغابايت لكل منها</li>
+<li>سحب وإسقاط أو أداة اختيار الملفات</li>
+<li>محرر عارض لإضافة التسميات التوضيحية</li>
+</ul>
+<hr>
+<h3>التصدير — تنزيل المستند</h3>
+<p>عند نقر الطالب على <strong>&quot;تنزيل .docx&quot;</strong>، تقوم الأداة بـ:</p>
+<ol>
+<li>تجميع جميع نصوص الفصول المُنشأة في مستند Word منظم</li>
+<li>دمج بنى فئات C# ومقاطع الكود مع التنسيق الصحيح</li>
+<li>إدراج مخططات ERD وUML كصور</li>
+<li>دمج لقطات الشاشة في فصل دليل المستخدم</li>
+<li>تطبيق تنسيق RTL كامل (من اليمين إلى اليسار) خلال المستند</li>
+<li>استخدام خط David MT، حجم 12، تباعد أسطر 1.5 مع هوامش 2.5 سم</li>
+</ol>
+<p>والنتيجة ملف <code dir="ltr">.docx</code> جاهز للتحرير يفتح في Microsoft Word.</p>
+<hr>
+<h2>إضافة دالة يدويًا</h2>
+<p>في بعض الأحيان يريد الطالب التأكد يدويًا من توثيق دالة معينة — على سبيل المثال، دالة لم يتم اكتشافها تلقائيًا أو دالة يعتبرها الأهم في مشروعه.</p>
+<p><strong>كيفية القيام بذلك:</strong></p>
+<ol>
+<li>ارجع إلى <strong>الخطوة 3 — رفع الكود</strong> (انقر على الخطوة المكتملة في رأس المعالج)</li>
+<li>في <strong>لوحة مقاطع الكود</strong>، ابحث عن الفئة التي تحتوي على الدالة</li>
+<li>إذا كانت الفئة مستبعدة، ألغِ تحديد <strong>&quot;استبعاد&quot;</strong> لتضمينها</li>
+<li>ابحث عن الطريقة المحددة في قائمة طرق الفئة</li>
+<li>حدد مربع الاختيار <strong>&quot;مقطع رئيسي&quot;</strong> بجانب تلك الطريقة</li>
+<li>استمر في المعالج — سيُنشئ الذكاء الاصطناعي <strong>شرح استدعاء</strong> مخصصًا لتلك الدالة في فصل التنفيذ</li>
+</ol>
+<blockquote>
+<p>يمكنك إضافة عدة دوال مخصصة. الحد الأقصى هو 20 مقطعًا رئيسيًا إجمالًا عبر جميع الفئات.</p>
+</blockquote>
+<hr>
+<h2>دعم اللغات</h2>
+<p>يدعم AutoProjectBook لغتين للإخراج، كلتاهما بتخطيط كامل من اليمين إلى اليسار (RTL):</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">اللغة</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الواجهة</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">المستند</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الاتجاه</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>العربية</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ واجهة عربية</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ نص المستند بالعربية</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">RTL</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>العبرية (עברית)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ واجهة عبرية</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">✅ نص المستند بالعبرية</td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">RTL</td>
+</tr>
+</tbody></table>
+
+<p><strong>ما الذي يتغير مع إعداد اللغة:</strong></p>
+<ul>
+<li>تنتقل جميع تسميات الواجهة والأزرار والرسائل إلى اللغة المختارة</li>
+<li>يكتب الذكاء الاصطناعي جميع نصوص الفصول بتلك اللغة</li>
+<li>تتبع عناوين الفصول اصطلاحات التسمية الرسمية لوزارة التربية باللغة المستهدفة</li>
+<li>يُنسَّق مستند Word باتجاه فقرة RTL خلاله</li>
+<li>تحتفظ الأرقام وأسطر الكود باتجاه من اليسار إلى اليمين داخل نص RTL (وهو المعتاد)</li>
+</ul>
+<p>يمكن تغيير اللغة في أي وقت بالعودة إلى الخطوة 1 (نقر على دائرة الخطوة في الرأس).</p>
+<hr>
+<h2>جميع الميزات العاملة</h2>
+<p>الميزات التالية مُطبَّقة بالكامل وتعمل في AutoProjectBook:</p>
+<table dir="rtl" style="border-collapse:collapse;width:100%;margin:8px 0;">
+<thead><tr>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الميزة</th>
+  <th style="border:1px solid #ccc; padding:8px; text-align:right; background:#f0f0f0; font-weight:bold;">الوصف</th>
+</tr></thead><tbody>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>اختيار اللغة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">الاختيار بين العربية والعبرية عند بدء التشغيل</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>واجهة RTL</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تخطيط كامل من اليمين إلى اليسار للغتين</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إدخال اسم الطالب</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">يُستخدم في رأس المستند</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إعداد مفتاح Gemini API</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مع زر اختبار حي وإدخال مخفي</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>دعم Azure OpenAI</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مزود ذكاء اصطناعي بديل للاستخدام المدرسي</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>اختيار نموذج Gemini</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">الاختيار من نماذج معروفة أو إدخال اسم نموذج مخصص</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>اختيار نوع المشروع</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ASP.NET / Blazor / WPF / WinForms / Android / أخرى</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>رفع مجلد كود C#</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">سحب وإسقاط أو أداة اختيار الدليل</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>استخراج فئات وطرق C#</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تحليل تلقائي لجميع ملفات <code dir="ltr">.cs</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>لوحة مقاطع الكود</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">عرض جميع الفئات والطرق المحللة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>عناصر تحكم تضمين/استبعاد الفئة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">إزالة الملفات المُولَّدة تلقائيًا أو غير ذات الصلة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تمييز المقاطع الرئيسية (دوالي أنا)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تمييز ما يصل إلى 20 دالة للتوثيق المفصل</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>دعم المشروع متعدد المجلدات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">دمج الملفات من مجلدات متعددة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>رفع ملف قاعدة البيانات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">MS Access <code dir="ltr">.mdb/.accdb</code> وSQL Server <code dir="ltr">.sql</code></td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إدخال قاعدة البيانات يدويًا</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">كتابة الجداول والأعمدة إذا لم يكن يتوفر ملف قاعدة بيانات</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>محرر مراجعة الجداول والأعمدة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تعديل المخطط المستخرج قبل الإنشاء</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>رفع لقطات الشاشة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">PNG, JPG, WEBP — حتى 30 صورة</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>محرر عارض لقطات الشاشة</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">عرض بالحجم الكامل مع إدخال التسمية والبيانات الوصفية</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إنشاء مستند بالذكاء الاصطناعي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">11 فصلاً تُنشأ تلقائيًا باستخدام Gemini أو Azure</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تقدم الإنشاء في الوقت الفعلي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">قائمة تقدم فصل تلو الآخر</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إعادة المحاولة التلقائية عند تحديد المعدل</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">إعادة المحاولة ما يصل إلى 3 مرات مع تراجع</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>توثيق التكرار التعاودي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">يصف الذكاء الاصطناعي الخوارزميات التعاودية مع الحالة الأساسية والتعاودية</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>شجرة التكرار التعاودي</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">شجرة مرئية للاستدعاءات التعاودية في فصل التنفيذ</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>توثيق خوارزميات الفرز</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">يحدد الذكاء الاصطناعي منطق الفرز ويشرحه</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>توثيق مكدس الاستدعاءات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">سلاسل استدعاءات الطرق موثقة في فصل التنفيذ</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>شرح الاستدعاء (لكل دالة)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">شرح الذكاء الاصطناعي لكل مقطع رئيسي</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>صفحة مراجعة الفصول</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">قراءة النص المُنشأ، التنقل بين الفصول</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إعادة إنشاء الفصل</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">إعادة تشغيل الذكاء الاصطناعي لأي فصل فردي</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إنشاء مخطط ERD</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مخطط العلاقات-الكيانات من مخطط قاعدة البيانات (Mermaid)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>إنشاء مخطط UML للفئات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">مخطط الفئات من بنية كود C# (Mermaid)</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>معاينة المخططات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">عرض مخططات Mermaid المُنشأة قبل التصدير</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>قائمة التحقق من الامتثال</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">رؤية الفصول الإلزامية المكتملة قبل التنزيل</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>تصدير Word (.docx)</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">تنزيل مستند Word مُنسَّق بـ RTL</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>توثيق فئات C# في Word</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">الفئات والطرق مُنسَّقة بخط Courier New في فصل التنفيذ</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>دمج لقطات الشاشة في Word</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">لقطات الشاشة مضمنة في فصل دليل المستخدم مع التسميات التوضيحية</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>التنقل بالنقر على الخطوات</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">القفز إلى أي خطوة مكتملة من رأس المعالج</td>
+</tr>
+<tr>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;"><strong>معالجة الأخطاء وإشعارات Toast</strong></td>
+  <td style="border:1px solid #ccc; padding:8px; text-align:right; vertical-align:top;">ملاحظات واضحة على أخطاء الرفع وفشل الـ API</td>
+</tr>
+</tbody></table>
+
+<hr>
+<p><em>تم إعداد هذا الدليل لمساعدة المعلمين على فهم AutoProjectBook وتوجيه الطلاب في استخدامه وتقييم استخدامهم له.</em></p>
+<p><em>للحصول على الدعم الفني أو للاقتراحات، تواصل مع منسق هندسة البرمجيات في المدرسة.</em></p>
+
+
+  </main>
+</body>
+</html>

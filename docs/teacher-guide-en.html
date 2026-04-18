@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RecursiQuest - Teacher Guide</title>
+  <style>
+:root {
+  --bg: #f5f2ea;
+  --surface: #fffdf8;
+  --ink: #1f1f1f;
+  --line: #dfd7c8;
+  --accent: #0f766e;
+  --accent-soft: #dff4f2;
+  --code-bg: #f3efe5;
+  --table-head: #f0e6d2;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", "Noto Sans", Tahoma, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%, #f8e7c2 0%, transparent 35%),
+    radial-gradient(circle at 88% 0%, #d6efe9 0%, transparent 40%),
+    var(--bg);
+  color: var(--ink);
+  line-height: 1.75;
+}
+main {
+  max-width: 980px;
+  margin: 2rem auto 3rem;
+  padding: 2rem clamp(1rem, 2.8vw, 2.25rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+h1, h2, h3, h4 { line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.6em; }
+h1 { margin-top: 0.25em; padding-bottom: 0.6rem; border-bottom: 3px solid var(--accent-soft); }
+h2 { border-inline-start: 5px solid var(--accent); padding-inline-start: 0.7rem; }
+a { color: #0d5c56; text-underline-offset: 2px; }
+a:hover { color: #094944; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2rem 0; }
+blockquote {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-inline-start: 4px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 8px;
+}
+code {
+  font-family: Consolas, "Cascadia Code", monospace;
+  background: var(--code-bg);
+  border: 1px solid #e7ddcb;
+  padding: 0.08rem 0.35rem;
+  border-radius: 5px;
+}
+pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: #24292e;
+  color: #f7f7f7;
+  border-radius: 10px;
+}
+pre code { background: transparent; border: 0; color: inherit; padding: 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.97rem;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.62rem 0.7rem;
+  vertical-align: top;
+}
+th { background: var(--table-head); font-weight: 700; }
+ul, ol { padding-inline-start: 1.25rem; }
+li { margin-bottom: 0.32rem; }
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  main { margin: 1rem 0.7rem 1.3rem; padding: 1rem; border-radius: 12px; }
+  table { font-size: 0.92rem; display: block; overflow-x: auto; white-space: nowrap; }
+}
+  </style>
+</head>
+<body>
+  <main>
+<h1>AutoProjectBook — Teacher Guide</h1>
+<p><strong>Version 1.0 | April 2026</strong></p>
+<hr>
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-autoprojectbook">What Is AutoProjectBook?</a></li>
+<li><a href="#who-is-it-for">Who Is It For?</a></li>
+<li><a href="#what-does-the-generated-document-include">What Does the Generated Document Include?</a></li>
+<li><a href="#how-to-use-it--step-by-step">How to Use It — Step by Step</a><ul>
+<li><a href="#step-1--choose-language">Step 1 — Choose Language</a></li>
+<li><a href="#step-2--setup">Step 2 — Setup</a></li>
+<li><a href="#step-3--import-code-upload">Step 3 — Import: Code Upload</a></li>
+<li><a href="#step-4--import-database-upload">Step 4 — Import: Database Upload</a></li>
+<li><a href="#step-5--import-screenshots">Step 5 — Import: Screenshots</a></li>
+<li><a href="#step-6--generate-document">Step 6 — Generate Document</a></li>
+<li><a href="#step-7--review-chapters">Step 7 — Review Chapters</a></li>
+<li><a href="#step-8--export-download">Step 8 — Export: Download</a></li>
+</ul>
+</li>
+<li><a href="#code-documentation-features">Code Documentation Features</a><ul>
+<li><a href="#code-snippet-panel">Code Snippet Panel</a></li>
+<li><a href="#key-functions-my-functions">Key Functions (My Functions)</a></li>
+<li><a href="#call-explanation">Call Explanation</a></li>
+<li><a href="#recursion-and-recursion-tree">Recursion and Recursion Tree</a></li>
+<li><a href="#sorting-algorithms">Sorting Algorithms</a></li>
+<li><a href="#call-stack">Call Stack</a></li>
+</ul>
+</li>
+<li><a href="#import-and-export-in-detail">Import and Export in Detail</a></li>
+<li><a href="#adding-your-own-function">Adding Your Own Function</a></li>
+<li><a href="#language-support">Language Support</a></li>
+<li><a href="#all-working-features">All Working Features</a></li>
+</ol>
+<hr>
+<h2>What Is AutoProjectBook?</h2>
+<p><strong>AutoProjectBook</strong> is a free, browser-based tool that helps students in the 5-unit Software Engineering major create their mandatory <strong>Sefer Proyekt (ספר פרויקט)</strong> — the official project documentation required by the Israeli Ministry of Education.</p>
+<p>Instead of writing a 40–60 page document from scratch, the student uploads their finished C# project files, database schema, and screenshots, and the tool <strong>automatically generates a complete, properly formatted Word document</strong> (.docx) in Hebrew or Arabic — ready to review, finalize, and submit.</p>
+<p>The tool uses <strong>AI (Google Gemini or Azure OpenAI)</strong> to read the student&#39;s code structure and write natural, relevant text in each chapter. No full source code ever leaves the browser — only class names, method signatures, and table structures are sent to the AI.</p>
+<blockquote>
+<p><strong>Key point for teachers:</strong> The tool produces approximately 80% of the document automatically. Students still need to fill in the personal reflection section and add their name to the cover page in Microsoft Word before submitting.</p>
+</blockquote>
+<hr>
+<h2>Who Is It For?</h2>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Students (primary)</strong></td>
+<td>Grades 11–12, Software Engineering major. Have finished their C# project and need to generate formal documentation.</td>
+</tr>
+<tr>
+<td><strong>Teachers</strong></td>
+<td>Guide students through the process, verify that all mandatory sections are present, and evaluate the submitted document.</td>
+</tr>
+</tbody></table>
+<p>The tool runs entirely in the browser — no installation is needed. Students can use it from any school computer or personal laptop with an internet connection (Chrome or Edge recommended).</p>
+<hr>
+<h2>What Does the Generated Document Include?</h2>
+<p>The tool generates a Word document structured according to Ministry of Education guidelines. All mandatory chapters are included automatically:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Chapter</th>
+<th>What It Contains</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Introduction</strong></td>
+<td>Project goals, target audience, problem statement</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Tech Stack Overview</strong></td>
+<td>Frameworks, languages, and tools used and why</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>System Analysis</strong></td>
+<td>Functional and non-functional requirements</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Database</strong></td>
+<td>Table descriptions, column details, ERD diagram</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Server Implementation</strong></td>
+<td>Business logic classes, key code snippets, method explanations</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Client Implementation</strong></td>
+<td>UI structure, components, screen descriptions</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>User Guide</strong></td>
+<td>Step-by-step instructions with embedded screenshots</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Reflection</strong></td>
+<td>Personal reflection on the project (student completes in Word)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Difficulties &amp; Solutions</strong></td>
+<td>Technical challenges faced and how they were resolved</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Future Development</strong></td>
+<td>Proposed improvements and next steps</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Appendices</strong></td>
+<td>Additional class documentation</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>How to Use It — Step by Step</h2>
+<p>The tool is organized as a wizard with 8 steps. A progress bar at the top shows which step the student is on. Completed steps can be clicked to go back and make changes.</p>
+<hr>
+<h3>Step 1 — Choose Language</h3>
+<p>The very first screen asks the student to choose the output language for the generated document:</p>
+<ul>
+<li><strong>עברית (Hebrew)</strong> — The document will be written entirely in Hebrew</li>
+<li><strong>العربية (Arabic)</strong> — The document will be written entirely in Arabic</li>
+</ul>
+<p>The app interface also switches to the chosen language, with full right-to-left (RTL) layout support.</p>
+<hr>
+<h3>Step 2 — Setup</h3>
+<p>On this screen, the student fills in the basic information needed to start:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Student name</strong></td>
+<td>Appears in the document header</td>
+</tr>
+<tr>
+<td><strong>AI API key</strong></td>
+<td>Google Gemini API key (free tier available). The key stays in the browser only.</td>
+</tr>
+<tr>
+<td><strong>AI model</strong></td>
+<td>Choose a Gemini model — default: <code>gemini-1.5-pro</code></td>
+</tr>
+<tr>
+<td><strong>Project type</strong></td>
+<td>Select: ASP.NET / Blazor / WPF / Windows Forms / Android / Other</td>
+</tr>
+</tbody></table>
+<p>A <strong>&quot;Test Key&quot;</strong> button lets the student verify the API key before proceeding — no wasted time if the key is wrong.</p>
+<blockquote>
+<p>The tool also supports <strong>Azure OpenAI</strong> for schools that use Microsoft Azure. Students enter their Azure endpoint and deployment name instead of a Gemini key.</p>
+</blockquote>
+<hr>
+<h3>Step 3 — Import: Code Upload</h3>
+<p>This is the main import step, where the student brings in their C# project source code.</p>
+<p><strong>How it works:</strong></p>
+<ol>
+<li>The student clicks the upload area or drags and drops their <strong>project folder</strong></li>
+<li>The tool automatically reads all <code>.cs</code> files (and associated <code>.aspx</code>, <code>.cshtml</code>, <code>.config</code> files)</li>
+<li>Within seconds, a list of all detected <strong>classes, methods, properties, and fields</strong> appears</li>
+</ol>
+<p><strong>What the student sees in the Code Snippet Panel:</strong></p>
+<ul>
+<li>All parsed classes listed by name</li>
+<li>For each class: its methods, parameters, return types, and access modifiers</li>
+<li>A checkbox to <strong>include or exclude</strong> each class from the documentation</li>
+<li>Auto-excluded items: auto-generated files, migration files, test files</li>
+</ul>
+<p><strong>Marking Key Functions (My Functions):</strong>
+Within the class list, the student can mark specific methods as <strong>Key Snippets</strong> — the most important or interesting functions in their project. These are treated specially in the generated document (see <a href="#key-functions-my-functions">Key Functions</a> below).</p>
+<p>Multiple folders can be added if the project is split across more than one folder.</p>
+<hr>
+<h3>Step 4 — Import: Database Upload</h3>
+<p>The student imports their database structure so the tool can document the tables, columns, and relationships.</p>
+<p><strong>Supported formats:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MS Access</td>
+<td><code>.mdb</code> or <code>.accdb</code> file — tables extracted automatically</td>
+</tr>
+<tr>
+<td>SQL Server / T-SQL</td>
+<td><code>.sql</code> file — <code>CREATE TABLE</code> statements parsed automatically</td>
+</tr>
+<tr>
+<td>Manual entry</td>
+<td>No file needed — type tables and columns directly into a form</td>
+</tr>
+</tbody></table>
+<p><strong>What the tool extracts:</strong></p>
+<ul>
+<li>Table names and descriptions</li>
+<li>Column names, data types, nullability</li>
+<li>Primary keys (PK) and foreign key relationships (FK)</li>
+</ul>
+<p><strong>After uploading</strong>, the student can review and correct everything:</p>
+<ul>
+<li>Edit column names or types</li>
+<li>Add or remove columns</li>
+<li>Write a human-readable description for each table and field</li>
+<li>Mark or unmark PK/FK flags</li>
+</ul>
+<p>This reviewed data is used to generate the <strong>Database chapter</strong> and the <strong>ERD diagram</strong>.</p>
+<hr>
+<h3>Step 5 — Import: Screenshots</h3>
+<p>The student uploads screenshots of their application to include in the <strong>User Guide</strong> chapter.</p>
+<p><strong>How it works:</strong></p>
+<ul>
+<li>Drag and drop image files (PNG, JPG, WEBP) or use the file picker</li>
+<li>Up to <strong>30 screenshots</strong>, maximum 5 MB each</li>
+<li>A <strong>Screenshot Carousel</strong> opens automatically, showing each image one at a time at full size</li>
+</ul>
+<p><strong>For each screenshot, the student fills in:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Caption</td>
+<td>Describes what is shown in the screenshot</td>
+</tr>
+<tr>
+<td>Screen name</td>
+<td>The name of the screen (e.g., &quot;Login Page&quot;)</td>
+</tr>
+<tr>
+<td>User type</td>
+<td>Admin / Regular User / Both</td>
+</tr>
+<tr>
+<td>Chapter tag</td>
+<td>Which chapter this screenshot belongs to</td>
+</tr>
+</tbody></table>
+<p>The screenshots are embedded directly into the Word document in the User Guide chapter, with their captions as figure labels.</p>
+<hr>
+<h3>Step 6 — Generate Document</h3>
+<p>Once all inputs are ready, the student clicks <strong>Generate</strong>. The tool then:</p>
+<ol>
+<li>Builds a summary of the project (student name, project type, class names, table names, screenshot labels)</li>
+<li>Sends each chapter&#39;s context to the AI — one chapter at a time</li>
+<li>The AI writes the chapter text in Hebrew or Arabic</li>
+<li>A <strong>progress list</strong> shows each chapter&#39;s generation status in real time</li>
+<li>Generation typically takes <strong>2–5 minutes</strong> depending on project size</li>
+</ol>
+<blockquote>
+<p><strong>What is sent to the AI:</strong> Only the project summary (class names, method signatures, table structures) — never the actual code content. This protects student privacy.</p>
+<p>If the AI rate limit is hit, the tool automatically waits and retries.</p>
+</blockquote>
+<hr>
+<h3>Step 7 — Review Chapters</h3>
+<p>After generation is complete, the student enters the review phase:</p>
+<ul>
+<li>A <strong>sidebar</strong> lists all 11 chapters with status badges: ✓ Complete / ⚠ Failed / ○ Pending</li>
+<li>Click any chapter to read the full AI-generated text</li>
+<li>If a chapter needs improvement, click <strong>Regenerate</strong> to ask the AI to rewrite it</li>
+<li>Navigate between chapters using the sidebar</li>
+</ul>
+<p>A separate <strong>Diagrams view</strong> shows the generated:</p>
+<ul>
+<li><strong>ERD diagram</strong> (from the database schema)</li>
+<li><strong>UML class diagram</strong> (from the C# class structure)</li>
+</ul>
+<p>Both diagrams are written in Mermaid syntax and embedded into the Word document as images.</p>
+<hr>
+<h3>Step 8 — Export: Download</h3>
+<p>The final step allows the student to download their finished document:</p>
+<ol>
+<li>A <strong>compliance checklist</strong> shows which mandatory chapters are complete and which are missing</li>
+<li>Once satisfied, the student clicks <strong>Download .docx</strong></li>
+<li>The Word document is assembled entirely in the browser</li>
+<li>The file opens directly in Microsoft Word for final editing</li>
+</ol>
+<p><strong>What to complete in Word:</strong></p>
+<ul>
+<li>Cover page (student ID, school name, teacher name, submission date)</li>
+<li>Personal reflection section (must be written by the student — AI cannot write this per MoE rules)</li>
+<li>Bibliography</li>
+</ul>
+<hr>
+<h2>Code Documentation Features</h2>
+<h3>Code Snippet Panel</h3>
+<p>The <strong>Code Snippet Panel</strong> appears after the student uploads their C# files (Step 3). It is the central place where all code-related decisions are made.</p>
+<p>The panel shows:</p>
+<ul>
+<li>Every class detected in the uploaded code</li>
+<li>Each class&#39;s <strong>methods</strong>, <strong>properties</strong>, and <strong>fields</strong> in a readable list</li>
+<li>Access modifiers (<code>public</code>, <code>private</code>, <code>protected</code>)</li>
+<li>Return types and parameter lists for each method</li>
+</ul>
+<p>The student can scroll through the entire codebase class by class, deciding what to include in the generated document.</p>
+<hr>
+<h3>Key Functions (My Functions)</h3>
+<p>Within the Code Snippet Panel, the student can mark any method as a <strong>Key Snippet</strong> — these are the functions they want to highlight as the most important parts of their implementation. Think of them as: <em>&quot;My most important functions.&quot;</em></p>
+<p><strong>How to mark a key function:</strong></p>
+<ul>
+<li>In the class list, find the method and check the <strong>&quot;Key Snippet&quot;</strong> checkbox</li>
+<li>Up to <strong>20 functions</strong> can be marked</li>
+</ul>
+<p><strong>What happens in the generated document:</strong></p>
+<ul>
+<li>Key functions are displayed with a <strong>★</strong> symbol in the Implementation chapter</li>
+<li>Each key function gets its own dedicated section with:<ul>
+<li>The full method signature</li>
+<li>The function&#39;s <strong>Call Explanation</strong> (see below)</li>
+<li>A description of its role in the system</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3>Call Explanation</h3>
+<p>For every function marked as a Key Snippet, the AI generates a <strong>Call Explanation</strong> — a clear, plain-language description written in Hebrew or Arabic:</p>
+<ul>
+<li><strong>What the function does</strong> — its purpose in the system</li>
+<li><strong>What inputs it receives</strong> (parameters) and what they represent</li>
+<li><strong>What it returns</strong> or what changes it causes</li>
+<li><strong>Why this function is important</strong> to the overall application</li>
+</ul>
+<p>This explanation is placed directly beside or below the code snippet in the document, making the code readable even for non-programmers.</p>
+<hr>
+<h3>Recursion and Recursion Tree</h3>
+<p>If the student&#39;s project includes <strong>recursive methods</strong> (functions that call themselves), the tool handles them with special documentation.</p>
+<p><strong>In the Implementation chapter, recursive functions include:</strong></p>
+<ul>
+<li>A description of the <strong>recursion pattern</strong> used</li>
+<li>The <strong>base case</strong> — the condition that stops the recursion</li>
+<li>The <strong>recursive case</strong> — how the function calls itself step by step</li>
+<li>The purpose and result of the recursion</li>
+</ul>
+<p><strong>Recursion Tree:</strong>
+A visual tree structure is included in the documentation showing how the recursive calls expand from the initial call down through each level — for example, showing <code>factorial(5) → factorial(4) → factorial(3)</code> and so on. This makes the algorithm&#39;s structure immediately visible to evaluators.</p>
+<hr>
+<h3>Sorting Algorithms</h3>
+<p>If the student&#39;s project contains <strong>sorting algorithms</strong> (Bubble Sort, Selection Sort, Quick Sort, Merge Sort, etc.), the AI will:</p>
+<ul>
+<li>Identify the sorting logic from the uploaded code</li>
+<li><strong>Name and explain</strong> the algorithm used</li>
+<li>Describe how data flows through the sort</li>
+<li>Include a step-by-step trace of a sample input through the algorithm in the documentation</li>
+</ul>
+<p>This ensures the Implementation chapter accurately reflects the algorithmic work the student has done — one of the key evaluation criteria.</p>
+<hr>
+<h3>Call Stack</h3>
+<p>For functions that call multiple other functions, the document includes a <strong>Call Stack</strong> section showing the chain of method calls:</p>
+<ul>
+<li>The <strong>starting method</strong> (entry point)</li>
+<li>Which methods it calls, and in what order</li>
+<li>Any nested calls within those methods</li>
+<li>The final result or return value</li>
+</ul>
+<p>This section makes it easy for evaluators to follow the program&#39;s execution path and understand how the different parts of the system work together.</p>
+<hr>
+<h2>Import and Export in Detail</h2>
+<h3>Import — Uploading Files</h3>
+<p>The tool supports three distinct import flows:</p>
+<p><strong>Code Import (Step 3):</strong></p>
+<ul>
+<li>Upload a C# project folder (all <code>.cs</code> files are detected automatically)</li>
+<li>Additional file types also supported: <code>.aspx</code>, <code>.cshtml</code>, <code>.config</code>, <code>.css</code>, <code>.js</code></li>
+<li>Multiple folders can be added to combine a multi-folder project</li>
+<li>Files are processed entirely in the browser — nothing is uploaded to a server</li>
+</ul>
+<p><strong>Database Import (Step 4):</strong></p>
+<ul>
+<li>MS Access files (<code>.mdb</code>, <code>.accdb</code>) — tables and relationships extracted automatically</li>
+<li>SQL Server T-SQL scripts (<code>.sql</code>) — <code>CREATE TABLE</code> statements parsed</li>
+<li>Manual entry option for students with no database file</li>
+</ul>
+<p><strong>Screenshots Import (Step 5):</strong></p>
+<ul>
+<li>Image files: PNG, JPG, WEBP</li>
+<li>Up to 30 images, max 5 MB each</li>
+<li>Drag-and-drop or file picker</li>
+<li>Carousel editor for captioning</li>
+</ul>
+<hr>
+<h3>Export — Downloading the Document</h3>
+<p>When the student clicks <strong>Download .docx</strong>, the tool:</p>
+<ol>
+<li>Assembles all generated chapter text into a structured Word document</li>
+<li>Embeds the C# class structures and code snippets with proper formatting</li>
+<li>Inserts ERD and UML diagrams as images</li>
+<li>Embeds screenshots in the User Guide chapter</li>
+<li>Applies full RTL formatting (right-to-left) throughout</li>
+<li>Uses David MT font, size 12, 1.5 line spacing with 2.5 cm margins</li>
+</ol>
+<p>The result is a ready-to-edit <code>.docx</code> file that opens in Microsoft Word.</p>
+<hr>
+<h2>Adding Your Own Function</h2>
+<p>Sometimes a student wants to manually ensure a specific function is documented — for example, a function that was not detected automatically or one that they consider the most important part of their project.</p>
+<p><strong>How to do it:</strong></p>
+<ol>
+<li>Go back to <strong>Step 3 — Code Upload</strong> (click the completed step in the wizard header)</li>
+<li>In the <strong>Code Snippet Panel</strong>, find the class that contains your function</li>
+<li>If the class was excluded, uncheck the <strong>Exclude</strong> checkbox to include it</li>
+<li>Find the specific method in the class&#39;s method list</li>
+<li>Check the <strong>Key Snippet</strong> checkbox next to that method</li>
+<li>Proceed through the wizard — the AI will generate a dedicated <strong>Call Explanation</strong> for that function in the Implementation chapter</li>
+</ol>
+<blockquote>
+<p>You can add multiple custom functions. The maximum is 20 key snippets total across all classes.</p>
+</blockquote>
+<hr>
+<h2>Language Support</h2>
+<p>AutoProjectBook supports two output languages, both with full right-to-left (RTL) layout:</p>
+<table>
+<thead>
+<tr>
+<th>Language</th>
+<th>Interface</th>
+<th>Document</th>
+<th>Direction</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Hebrew (עברית)</strong></td>
+<td>✅ Hebrew UI</td>
+<td>✅ Hebrew document text</td>
+<td>RTL</td>
+</tr>
+<tr>
+<td><strong>Arabic (العربية)</strong></td>
+<td>✅ Arabic UI</td>
+<td>✅ Arabic document text</td>
+<td>RTL</td>
+</tr>
+</tbody></table>
+<p><strong>What changes with the language setting:</strong></p>
+<ul>
+<li>All UI labels, buttons, and messages switch to the chosen language</li>
+<li>The AI writes all chapter text in that language</li>
+<li>Chapter headings follow the official MoE naming in the target language</li>
+<li>The Word document is formatted with RTL paragraph direction throughout</li>
+<li>Numbers and code lines retain left-to-right direction within RTL text (as is standard)</li>
+</ul>
+<p>Language can be changed at any time by going back to Step 1 (click the step circle in the header).</p>
+<hr>
+<h2>All Working Features</h2>
+<p>The following features are fully implemented and working in AutoProjectBook:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Language selection</strong></td>
+<td>Choose Hebrew or Arabic at startup</td>
+</tr>
+<tr>
+<td><strong>RTL interface</strong></td>
+<td>Full right-to-left layout for both languages</td>
+</tr>
+<tr>
+<td><strong>Student name entry</strong></td>
+<td>Used in the document header</td>
+</tr>
+<tr>
+<td><strong>Gemini API key configuration</strong></td>
+<td>With live test button and masked input</td>
+</tr>
+<tr>
+<td><strong>Azure OpenAI support</strong></td>
+<td>Alternative AI provider for school use</td>
+</tr>
+<tr>
+<td><strong>Gemini model selection</strong></td>
+<td>Choose from known models or enter a custom model name</td>
+</tr>
+<tr>
+<td><strong>Project type selection</strong></td>
+<td>ASP.NET / Blazor / WPF / WinForms / Android / Other</td>
+</tr>
+<tr>
+<td><strong>C# code folder upload</strong></td>
+<td>Drag-and-drop or directory picker</td>
+</tr>
+<tr>
+<td><strong>C# class and method extraction</strong></td>
+<td>Automatic parsing of all <code>.cs</code> files</td>
+</tr>
+<tr>
+<td><strong>Code Snippet Panel</strong></td>
+<td>View all parsed classes and methods</td>
+</tr>
+<tr>
+<td><strong>Class include/exclude controls</strong></td>
+<td>Remove auto-generated or irrelevant classes</td>
+</tr>
+<tr>
+<td><strong>Key Snippet marking (My Functions)</strong></td>
+<td>Mark up to 20 functions for detailed documentation</td>
+</tr>
+<tr>
+<td><strong>Multi-folder project support</strong></td>
+<td>Combine files from multiple folders</td>
+</tr>
+<tr>
+<td><strong>Database file upload</strong></td>
+<td>MS Access <code>.mdb/.accdb</code> and SQL Server <code>.sql</code></td>
+</tr>
+<tr>
+<td><strong>Manual database entry</strong></td>
+<td>Type tables and columns if no database file available</td>
+</tr>
+<tr>
+<td><strong>Table and column review editor</strong></td>
+<td>Edit extracted schema before generating</td>
+</tr>
+<tr>
+<td><strong>Screenshot upload</strong></td>
+<td>PNG, JPG, WEBP — up to 30 images</td>
+</tr>
+<tr>
+<td><strong>Screenshot carousel editor</strong></td>
+<td>Full-size view with caption and metadata entry</td>
+</tr>
+<tr>
+<td><strong>AI document generation</strong></td>
+<td>11 chapters generated automatically using Gemini or Azure</td>
+</tr>
+<tr>
+<td><strong>Real-time generation progress</strong></td>
+<td>Chapter-by-chapter progress list</td>
+</tr>
+<tr>
+<td><strong>Automatic retry on rate limit</strong></td>
+<td>Retries up to 3 times with backoff</td>
+</tr>
+<tr>
+<td><strong>Recursion documentation</strong></td>
+<td>AI describes recursive algorithms with base case and recursive case</td>
+</tr>
+<tr>
+<td><strong>Recursion tree</strong></td>
+<td>Visual tree of recursive calls in the Implementation chapter</td>
+</tr>
+<tr>
+<td><strong>Sorting algorithm documentation</strong></td>
+<td>AI identifies and explains sorting logic</td>
+</tr>
+<tr>
+<td><strong>Call Stack documentation</strong></td>
+<td>Method call chains documented in the Implementation chapter</td>
+</tr>
+<tr>
+<td><strong>Call Explanation (per function)</strong></td>
+<td>AI explanation for every key snippet</td>
+</tr>
+<tr>
+<td><strong>Chapter review page</strong></td>
+<td>Read generated text, navigate between chapters</td>
+</tr>
+<tr>
+<td><strong>Chapter regeneration</strong></td>
+<td>Re-run AI for any individual chapter</td>
+</tr>
+<tr>
+<td><strong>ERD diagram generation</strong></td>
+<td>Entity-Relationship Diagram from database schema (Mermaid)</td>
+</tr>
+<tr>
+<td><strong>UML class diagram generation</strong></td>
+<td>Class diagram from C# code structure (Mermaid)</td>
+</tr>
+<tr>
+<td><strong>Diagrams preview</strong></td>
+<td>View generated Mermaid diagrams before exporting</td>
+</tr>
+<tr>
+<td><strong>Compliance checklist</strong></td>
+<td>See which mandatory chapters are complete before downloading</td>
+</tr>
+<tr>
+<td><strong>Word (.docx) export</strong></td>
+<td>Download a formatted, RTL Word document</td>
+</tr>
+<tr>
+<td><strong>C# class documentation in Word</strong></td>
+<td>Classes and methods formatted in Courier New in Implementation chapter</td>
+</tr>
+<tr>
+<td><strong>Screenshot embedding in Word</strong></td>
+<td>Screenshots included in the User Guide chapter with captions</td>
+</tr>
+<tr>
+<td><strong>Clickable step navigation</strong></td>
+<td>Jump to any completed step from the wizard header</td>
+</tr>
+<tr>
+<td><strong>Error handling and toast notifications</strong></td>
+<td>Clear feedback for upload errors and API failures</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>This guide was prepared to help teachers understand, guide, and evaluate student use of AutoProjectBook.</em></p>
+<p><em>For technical support or suggestions, contact the school&#39;s software engineering coordinator.</em></p>
+
+
+  </main>
+</body>
+</html>
