@@ -1,5 +1,5 @@
-import type { AiProvider, GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey } from '../store/types';
-import { GEMINI_API_BASE } from '../utils/constants';
+import type { AiProvider, GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey, OpenAIModel, AiUsageStats } from '../store/types';
+import { GEMINI_API_BASE, OPENAI_API_BASE } from '../utils/constants';
 
 // ─── Provider config ──────────────────────────────────────────────────────
 
@@ -16,12 +16,37 @@ interface GeminiResponse {
   candidates?: Array<{
     content?: { parts?: Array<{ text?: string }> };
   }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
   error?: { message?: string };
 }
 
 interface AzureOpenAIResponse {
   choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
   error?: { message?: string };
+}
+
+interface OpenAIResponse {
+  choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  error?: { message?: string };
+}
+
+export interface AiTextResult {
+  text: string;
+  usage: AiUsageStats;
 }
 
 // ─── Retry constants ──────────────────────────────────────────────────────
@@ -31,6 +56,36 @@ interface AzureOpenAIResponse {
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 15_000; // 15 s — Gemini free-tier resets per minute
 
+function estimateTokens(text: string): number {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  return Math.max(1, Math.ceil(normalized.length / 4));
+}
+
+function buildUsageStats(
+  provider: AiProvider,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+  outputText: string,
+  actual?: Partial<Pick<AiUsageStats, 'inputTokens' | 'outputTokens' | 'totalTokens'>>,
+): AiUsageStats {
+  const estimatedInputTokens = estimateTokens(`${systemPrompt}\n${userPrompt}`);
+  const estimatedOutputTokens = estimateTokens(outputText);
+  const inputTokens = actual?.inputTokens ?? estimatedInputTokens;
+  const outputTokens = actual?.outputTokens ?? estimatedOutputTokens;
+  const totalTokens = actual?.totalTokens ?? inputTokens + outputTokens;
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    estimated: actual?.inputTokens == null || actual?.outputTokens == null || actual?.totalTokens == null,
+    provider,
+    model,
+  };
+}
+
 // ─── Gemini caller ────────────────────────────────────────────────────────
 
 async function callGemini(
@@ -38,7 +93,7 @@ async function callGemini(
   model: GeminiModel,
   systemPrompt: string,
   userPrompt: string,
-): Promise<string> {
+): Promise<AiTextResult> {
   if (!model) throw new Error('Gemini model name is required');
   const url = `${GEMINI_API_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
@@ -56,7 +111,15 @@ async function callGemini(
 
     if (res.ok) {
       const body = (await res.json()) as GeminiResponse;
-      return body.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const text = body.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      return {
+        text,
+        usage: buildUsageStats('gemini', model, systemPrompt, userPrompt, text, {
+          inputTokens: body.usageMetadata?.promptTokenCount,
+          outputTokens: body.usageMetadata?.candidatesTokenCount,
+          totalTokens: body.usageMetadata?.totalTokenCount,
+        }),
+      };
     }
 
     let errMsg = `HTTP ${res.status}`;
@@ -82,7 +145,7 @@ async function callAzureOpenAI(
   cfg: AzureConfig,
   systemPrompt: string,
   userPrompt: string,
-): Promise<string> {
+): Promise<AiTextResult> {
   // Validate endpoint: must be an https URL under openai.azure.com
   const { endpoint, apiKey, deploymentName, apiVersion } = cfg;
   if (!endpoint || !deploymentName || !apiVersion) {
@@ -125,7 +188,15 @@ async function callAzureOpenAI(
 
     if (res.ok) {
       const body = (await res.json()) as AzureOpenAIResponse;
-      return body.choices?.[0]?.message?.content ?? '';
+      const text = body.choices?.[0]?.message?.content ?? '';
+      return {
+        text,
+        usage: buildUsageStats('azure-openai', deploymentName, systemPrompt, userPrompt, text, {
+          inputTokens: body.usage?.prompt_tokens,
+          outputTokens: body.usage?.completion_tokens,
+          totalTokens: body.usage?.total_tokens,
+        }),
+      };
     }
 
     let errMsg = `HTTP ${res.status}`;
@@ -142,21 +213,84 @@ async function callAzureOpenAI(
   throw new Error(lastError);
 }
 
+// ─── OpenAI caller ───────────────────────────────────────────────────────
+
+async function callOpenAI(
+  apiKey: string,
+  model: OpenAIModel,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<AiTextResult> {
+  if (!apiKey.trim()) throw new Error('OpenAI API key is required');
+  if (!model.trim()) throw new Error('OpenAI model name is required');
+
+  const url = `${OPENAI_API_BASE}/v1/chat/completions`;
+  let lastError = '';
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.4,
+        top_p: 0.85,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (res.ok) {
+      const body = (await res.json()) as OpenAIResponse;
+      const text = body.choices?.[0]?.message?.content ?? '';
+      return {
+        text,
+        usage: buildUsageStats('openai', model, systemPrompt, userPrompt, text, {
+          inputTokens: body.usage?.prompt_tokens,
+          outputTokens: body.usage?.completion_tokens,
+          totalTokens: body.usage?.total_tokens,
+        }),
+      };
+    }
+
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as OpenAIResponse;
+      if (body.error?.message) errMsg = body.error.message;
+    } catch { /* ignore */ }
+    lastError = errMsg;
+
+    if (res.status !== 429 || attempt === MAX_RETRIES) break;
+    await new Promise((r) => setTimeout(r, RETRY_BASE_DELAY_MS * (attempt + 1)));
+  }
+
+  throw new Error(lastError);
+}
+
 // ─── Unified AI caller ────────────────────────────────────────────────────
 
 async function callAI(
   provider: AiProvider,
-  geminiApiKey: string,
-  geminiModel: GeminiModel,
+  apiKey: string,
+  model: GeminiModel,
   azureCfg: AzureConfig | null,
   systemPrompt: string,
   userPrompt: string,
-): Promise<string> {
+): Promise<AiTextResult> {
   if (provider === 'azure-openai') {
     if (!azureCfg) throw new Error('Azure config missing');
     return callAzureOpenAI(azureCfg, systemPrompt, userPrompt);
   }
-  return callGemini(geminiApiKey, geminiModel, systemPrompt, userPrompt);
+  if (provider === 'openai') {
+    return callOpenAI(apiKey, model, systemPrompt, userPrompt);
+  }
+  return callGemini(apiKey, model, systemPrompt, userPrompt);
 }
 
 // ─── System prompt builder ─────────────────────────────────────────────────
@@ -235,6 +369,18 @@ export async function testAzureConnection(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Azure connection failed' };
+  }
+}
+
+export async function testOpenAIConnection(
+  apiKey: string,
+  model: OpenAIModel,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await callOpenAI(apiKey, model, 'You are a helpful assistant.', 'Hi');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'OpenAI connection failed' };
   }
 }
 
@@ -457,7 +603,7 @@ ${methodNames}
 export async function generateChapter(
   chapterKey: ChapterKey,
   ctx: GenerationContext,
-): Promise<string> {
+): Promise<AiTextResult> {
   const systemPrompt = buildSystemPrompt(ctx.language);
   const basePrompt = CHAPTER_PROMPTS[chapterKey](ctx);
   // Arabic suffix (placed AFTER the Hebrew context so the model reads it last and obeys it).
@@ -470,7 +616,7 @@ export async function generateChapter(
 
 // ─── Diagram generators (Mermaid) ─────────────────────────────────────────
 
-export async function generateUmlDiagram(ctx: GenerationContext): Promise<string> {
+export async function generateUmlDiagram(ctx: GenerationContext): Promise<AiTextResult> {
   const systemPrompt = buildSystemPrompt(ctx.language);
   const label = ctx.language === 'ar' ? 'الفصول:' : 'מחלקות:';
   const instruction = ctx.language === 'ar'
@@ -518,9 +664,9 @@ export function parseClassDescriptions(
  */
 export async function generateClassDescriptions(
   ctx: GenerationContext,
-): Promise<Record<string, { classDesc: string; methods: Record<string, string> }>> {
+): Promise<{ descriptions: Record<string, { classDesc: string; methods: Record<string, string> }>; usage?: AiUsageStats }> {
   const active = ctx.classes.filter((c) => !c.isExcluded);
-  if (active.length === 0) return {};
+  if (active.length === 0) return { descriptions: {} };
 
   const systemPrompt = buildSystemPrompt(ctx.language);
 
@@ -550,14 +696,14 @@ CLASS ClassName: <תיאור>
 METHOD ClassName.methodName: <תיאור>`;
 
   try {
-    const response = await callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
-    return parseClassDescriptions(response);
+    const result = await callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+    return { descriptions: parseClassDescriptions(result.text), usage: result.usage };
   } catch {
-    return {};
+    return { descriptions: {} };
   }
 }
 
-export async function generateErdDiagram(ctx: GenerationContext): Promise<string> {
+export async function generateErdDiagram(ctx: GenerationContext): Promise<AiTextResult> {
   const systemPrompt = buildSystemPrompt(ctx.language);
   const label = ctx.language === 'ar' ? 'الجداول:' : 'טבלאות:';
   const instruction = ctx.language === 'ar'

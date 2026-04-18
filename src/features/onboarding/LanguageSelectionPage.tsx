@@ -65,7 +65,7 @@ export default function LanguageSelectionPage() {
 
       {/* Feature highlights */}
       <ul className="text-xs text-gray-500 flex flex-col gap-2 text-center">
-        <li>✨ יוצר מסמך Word מוכן להגשה בעזרת Gemini AI / أنشئ مستند Word جاهز للتقديم</li>
+        <li>✨ יוצר מסמך Word מוכן להגשה בעזרת Gemini / OpenAI / Azure OpenAI</li>
         <li>🔒 פרטיותיך לא עוזבים את הדפדפן / بياناتك لا تغادر متصفحتك</li>
         <li>⚡ מהקוד שלך לספר מוכן בכמה דקות / من كودك إلى كتاب جاهز في دقائق</li>
       </ul>

@@ -5,6 +5,7 @@
 export const APP_NAME = 'AutoProjectBook';
 export const SESSION_STORAGE_KEY = 'apb-session';
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
+export const OPENAI_API_BASE = 'https://api.openai.com';
 
 export const CHAPTER_KEYS = [
   'introduction',

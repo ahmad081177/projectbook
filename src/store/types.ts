@@ -2,16 +2,32 @@
 
 export type Language = 'he' | 'ar';
 export type ProjectType = 'aspnet' | 'blazor' | 'wpf' | 'winforms' | 'android' | 'other';
-export type AiProvider = 'gemini' | 'azure-openai';
+export type AiProvider = 'gemini' | 'openai' | 'azure-openai';
 
 /** Well-known Gemini model IDs — typed as string to also allow custom names. */
 export type GeminiModel = string;
+export type OpenAIModel = string;
+
+export interface AiUsageStats {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimated: boolean;
+  provider: AiProvider;
+  model: string;
+}
 
 export const KNOWN_GEMINI_MODELS = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-pro',
   'gemini-1.5-flash',
+] as const;
+
+export const KNOWN_OPENAI_MODELS = [
+  'gpt-4.1-mini',
+  'gpt-4o-mini',
+  'gpt-4o',
 ] as const;
 export type ChapterKey =
   | 'introduction'
@@ -38,10 +54,13 @@ export interface DatabaseSchema {
   tables: DatabaseTable[];
 }
 
+export type DatabaseSampleRow = Record<string, string>;
+
 export interface DatabaseTable {
   name: string;
   description?: string;
   columns: DatabaseColumn[];
+  sampleRows?: DatabaseSampleRow[];
 }
 
 export interface DatabaseColumn {
@@ -117,6 +136,7 @@ export interface GeneratedChapter {
   content: string;
   status: SectionStatus;
   lastGenerated?: string;
+  usage?: AiUsageStats;
 }
 
 export interface DiagramData {
@@ -124,6 +144,7 @@ export interface DiagramData {
   pngDataUrl?: string;
   description?: string;
   status: SectionStatus;
+  usage?: AiUsageStats;
 }
 
 // ── Slice state shapes ─────────────────────────────────────────
@@ -133,6 +154,8 @@ export interface OnboardingSlice {
   aiProvider: AiProvider;
   geminiApiKey: string;        // never persisted to storage (NFR6)
   geminiModel: GeminiModel;
+  openaiApiKey: string;        // never persisted to storage (NFR6)
+  openaiModel: OpenAIModel;
   // Azure OpenAI fields
   azureEndpoint: string;       // e.g. https://<resource>.openai.azure.com
   azureApiKey: string;         // never persisted to storage

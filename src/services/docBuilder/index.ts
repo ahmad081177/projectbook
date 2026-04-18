@@ -9,7 +9,7 @@ import {
   AlignmentType,
 } from 'docx';
 import { RTL_PARA, HEBREW_RUN, HEADING1_RUN, HEADING2_RUN, HEADING3_RUN, HEADING4_RUN, LTR_PARA } from './styles';
-import { classToImageBuffer, fileToImageBuffer, mermaidToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
+import { classToImageBuffer, fileToImageBuffer, mermaidToImageBuffer, tableSampleRowsToImageBuffer, tableToImageBuffer } from '../../utils/mermaid';
 import type { ChapterKey, CSharpClass, DatabaseTable, ProjectFile, ScreenshotChapter } from '../../store/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ type Lang = 'he' | 'ar';
 
 interface LangStrings {
   dbTableStructure: string;
+  dbSampleContents: string;
   dbRelations: string;
   dbErdFull: string;
   colPK: string;
@@ -45,6 +46,7 @@ interface LangStrings {
 const STRINGS: Record<Lang, LangStrings> = {
   he: {
     dbTableStructure: 'מבנה הטבלאות',
+    dbSampleContents: 'תצוגת תוכן הטבלה (5 שורות ראשונות)',
     dbRelations: 'יחסים בין הטבלאות',
     dbErdFull: 'דיאגרמת ERD — כל הטבלאות',
     colPK: 'מפתח ראשי',
@@ -70,6 +72,7 @@ const STRINGS: Record<Lang, LangStrings> = {
   },
   ar: {
     dbTableStructure: 'هيكل الجداول',
+    dbSampleContents: 'عرض محتوى الجدول (أول 5 صفوف)',
     dbRelations: 'العلاقات بين الجداول',
     dbErdFull: 'مخطط ERD — جميع الجداول',
     colPK: 'مفتاح أساسي',
@@ -430,6 +433,32 @@ async function buildDatabaseSection(
             }),
           );
         } catch { /* skip diagram on render failure */ }
+
+        if ((table.sampleRows?.length ?? 0) > 0) {
+          paragraphs.push(
+            new Paragraph({
+              ...RTL_PARA,
+              children: [new TextRun({ ...HEBREW_RUN, italics: true, text: S.dbSampleContents })],
+            }),
+          );
+          try {
+            const preview = await tableSampleRowsToImageBuffer(table);
+            paragraphs.push(
+              new Paragraph({
+                ...RTL_PARA,
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 160 },
+                children: [
+                  new ImageRun({
+                    type: 'png',
+                    data: preview.data,
+                    transformation: { width: preview.docxWidth, height: preview.docxHeight },
+                  }),
+                ],
+              }),
+            );
+          } catch { /* skip sample preview on render failure */ }
+        }
       } else {
         paragraphs.push(rtlParagraph(S.noColumns));
       }
@@ -502,7 +531,7 @@ function codeLineParagraph(text: string): Paragraph {
         text,
         font: 'Courier New',
         size: 18, // 9pt in half-points
-        rightToLeft: false,
+        rightToLeft: false, // Explicitly LTR — counter-acts document RTL default
       }),
     ],
   });
@@ -785,7 +814,20 @@ export async function buildAndDownloadDocument(input: BuildDocumentInput): Promi
     }
   }
 
+  // Set document-level RTL defaults so Word cannot override with its local template styles.
+  // Even though individual paragraphs carry <w:bidi/> and <w:jc w:val="right"/> as direct
+  // formatting, some Word versions apply heading/Normal styles over paragraph-level settings.
+  // Adding these document defaults ensures the style-level cascade is also RTL-first.
+  const biDiLang = lang === 'ar' ? 'ar-SA' : 'he-IL';
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          paragraph: { alignment: AlignmentType.RIGHT },
+          run: { rightToLeft: true, language: { bidirectional: biDiLang } },
+        },
+      },
+    },
     sections: [
       {
         properties: {

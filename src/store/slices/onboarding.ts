@@ -6,6 +6,8 @@ export const createOnboardingSlice: StateCreator<AppState, [], [], OnboardingSli
   aiProvider: 'gemini' as AiProvider,
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash',
+  openaiApiKey: '',
+  openaiModel: 'gpt-4.1-mini',
   azureEndpoint: '',
   azureApiKey: '',
   azureDeploymentName: '',

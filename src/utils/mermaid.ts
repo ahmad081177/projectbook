@@ -187,6 +187,153 @@ export async function tableToImageBuffer(table: DatabaseTable): Promise<ArrayBuf
   return blob.arrayBuffer();
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function ellipsizeText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let trimmed = text;
+  while (trimmed.length > 1 && ctx.measureText(`${trimmed}…`).width > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return `${trimmed}…`;
+}
+
+/**
+ * Renders the first 5 sample rows of a DatabaseTable as a PNG data-grid image.
+ * The image includes a table-title header row and column-name header row.
+ */
+export async function tableSampleRowsToImageBuffer(
+  table: DatabaseTable,
+): Promise<{ data: ArrayBuffer; docxWidth: number; docxHeight: number }> {
+  const columns = table.columns.map((column) => column.name);
+  const rows = (table.sampleRows ?? []).slice(0, 5);
+  if (columns.length === 0 || rows.length === 0) {
+    throw new Error('Sample rows unavailable');
+  }
+
+  const SCALE = 2;
+  const PADDING = 18 * SCALE;
+  const TITLE_H = 42 * SCALE;
+  const HEADER_H = 34 * SCALE;
+  const ROW_H = 30 * SCALE;
+  const CELL_PAD_X = 10 * SCALE;
+  const MIN_COL_W = 120 * SCALE;
+  const MAX_COL_W = 240 * SCALE;
+  const BORDER = 1 * SCALE;
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context unavailable');
+
+  const headerFont = `bold ${11 * SCALE}px "Segoe UI", Arial, sans-serif`;
+  const bodyFont = `${11 * SCALE}px "Segoe UI", Arial, sans-serif`;
+
+  ctx.font = headerFont;
+  const columnWidths = columns.map((columnName) => {
+    const headerWidth = ctx.measureText(columnName).width;
+    ctx.font = bodyFont;
+    const rowWidth = rows.reduce((maxWidth, row) => {
+      const value = row[columnName] || '—';
+      return Math.max(maxWidth, ctx.measureText(value).width);
+    }, 0);
+    ctx.font = headerFont;
+    return clamp(Math.ceil(Math.max(headerWidth, rowWidth) + CELL_PAD_X * 2), MIN_COL_W, MAX_COL_W);
+  });
+
+  const innerWidth = columnWidths.reduce((sum, width) => sum + width, 0) + BORDER * (columnWidths.length + 1);
+  const width = innerWidth + PADDING * 2;
+  const height = TITLE_H + HEADER_H + rows.length * ROW_H + PADDING * 2 + BORDER * (rows.length + 2);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  const gridX = PADDING;
+  const titleY = PADDING;
+  const headerY = titleY + TITLE_H;
+
+  ctx.fillStyle = '#0f4c81';
+  ctx.fillRect(gridX, titleY, innerWidth, TITLE_H);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${14 * SCALE}px "Segoe UI", Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(table.name, gridX + innerWidth / 2, titleY + TITLE_H / 2);
+
+  ctx.fillStyle = '#dbeafe';
+  ctx.fillRect(gridX, headerY, innerWidth, HEADER_H);
+
+  let currentX = gridX + BORDER;
+  ctx.font = headerFont;
+  ctx.textAlign = 'left';
+  columns.forEach((columnName, index) => {
+    const text = ellipsizeText(ctx, columnName, columnWidths[index] - CELL_PAD_X * 2);
+    ctx.fillStyle = '#1e3a8a';
+    ctx.fillText(text, currentX + CELL_PAD_X, headerY + HEADER_H / 2);
+    currentX += columnWidths[index] + BORDER;
+  });
+
+  ctx.font = bodyFont;
+  rows.forEach((row, rowIndex) => {
+    const rowY = headerY + HEADER_H + rowIndex * ROW_H + BORDER * (rowIndex + 1);
+    ctx.fillStyle = rowIndex % 2 === 0 ? '#f8fafc' : '#ffffff';
+    ctx.fillRect(gridX, rowY, innerWidth, ROW_H);
+
+    let cellX = gridX + BORDER;
+    columns.forEach((columnName, columnIndex) => {
+      const value = row[columnName] || '—';
+      const displayValue = ellipsizeText(ctx, value, columnWidths[columnIndex] - CELL_PAD_X * 2);
+      ctx.fillStyle = '#111827';
+      ctx.fillText(displayValue, cellX + CELL_PAD_X, rowY + ROW_H / 2);
+      cellX += columnWidths[columnIndex] + BORDER;
+    });
+  });
+
+  ctx.strokeStyle = '#93c5fd';
+  ctx.lineWidth = BORDER;
+  ctx.strokeRect(gridX, titleY, innerWidth, TITLE_H + HEADER_H + rows.length * ROW_H + BORDER * (rows.length + 1));
+
+  let lineX = gridX + BORDER;
+  columnWidths.forEach((columnWidth) => {
+    lineX += columnWidth;
+    ctx.beginPath();
+    ctx.moveTo(lineX, headerY);
+    ctx.lineTo(lineX, titleY + TITLE_H + HEADER_H + rows.length * ROW_H + BORDER * (rows.length + 1));
+    ctx.stroke();
+    lineX += BORDER;
+  });
+
+  for (let index = 0; index <= rows.length; index++) {
+    const lineY = headerY + HEADER_H + index * ROW_H + BORDER * index;
+    ctx.beginPath();
+    ctx.moveTo(gridX, lineY);
+    ctx.lineTo(gridX + innerWidth, lineY);
+    ctx.stroke();
+  }
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => (result ? resolve(result) : reject(new Error('toBlob returned null'))), 'image/png');
+  });
+
+  const naturalDocxWidth = Math.round(width / SCALE);
+  const naturalDocxHeight = Math.round(height / SCALE);
+  const ratio = Math.min(1, 560 / naturalDocxWidth);
+
+  return {
+    data: await blob.arrayBuffer(),
+    docxWidth: Math.round(naturalDocxWidth * ratio),
+    docxHeight: Math.round(naturalDocxHeight * ratio),
+  };
+}
+
 // ─── C# class code image (VS Code Dark+ theme) ────────────────────────────
 
 const C_BG       = '#1e1e1e';
