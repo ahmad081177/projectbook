@@ -295,3 +295,50 @@ describe('parseClassDescriptions', () => {
     expect(result['Alpha']?.methods['Init']).toBe('Initialises the instance.');
   });
 });
+
+// ── GenerationContext with new providers ─────────────────────────────────────
+
+describe('buildProjectSummary with new providers', () => {
+  it('works with claude provider', () => {
+    const ctx = makeCtx([makeClass('MyService')], {
+      provider: 'claude',
+      apiKey: 'sk-ant-test',
+      model: 'claude-sonnet-4-20250514',
+    });
+    const summary = buildProjectSummary(ctx);
+    expect(summary).toContain('MyService');
+    expect(summary).toContain('── פרטי הפרויקט ──');
+  });
+
+  it('works with ollama provider', () => {
+    const ctx = makeCtx([makeClass('DataProcessor')], {
+      provider: 'ollama',
+      apiKey: '',
+      model: 'llama3',
+      ollamaBaseUrl: 'http://localhost:11434',
+    });
+    const summary = buildProjectSummary(ctx);
+    expect(summary).toContain('DataProcessor');
+    expect(summary).toContain('── פרטי הפרויקט ──');
+  });
+
+  it('works with arabic language and claude provider', () => {
+    const ctx = makeCtx([makeClass('HomeController')], {
+      provider: 'claude',
+      language: 'ar',
+    });
+    const summary = buildProjectSummary(ctx);
+    expect(summary).toContain('── تفاصيل المشروع ──');
+    expect(summary).toContain('HomeController');
+  });
+
+  it('works with arabic language and ollama provider', () => {
+    const ctx = makeCtx([], {
+      provider: 'ollama',
+      language: 'ar',
+      ollamaBaseUrl: 'http://localhost:11434',
+    });
+    const summary = buildProjectSummary(ctx);
+    expect(summary).toContain('── تفاصيل المشروع ──');
+  });
+});

@@ -67,15 +67,19 @@ function StatusIcon({ status }: { status: GenerationTask['status'] }) {
 }
 
 function getProviderCredentials(store: ReturnType<typeof useAppStore.getState>) {
-  return {
-    apiKey: store.aiProvider === 'openai' ? store.openaiApiKey : store.geminiApiKey,
-    model: store.aiProvider === 'openai' ? store.openaiModel : store.geminiModel,
-  };
+  switch (store.aiProvider) {
+    case 'openai': return { apiKey: store.openaiApiKey, model: store.openaiModel };
+    case 'claude': return { apiKey: store.claudeApiKey, model: store.claudeModel };
+    case 'ollama': return { apiKey: '', model: store.ollamaModel };
+    default:       return { apiKey: store.geminiApiKey, model: store.geminiModel };
+  }
 }
 
 function getProviderLabel(provider: AiUsageStats['provider'], t: (key: string) => string): string {
   if (provider === 'openai') return t('provider.openai');
   if (provider === 'azure-openai') return t('provider.azure');
+  if (provider === 'claude') return t('provider.claude');
+  if (provider === 'ollama') return t('provider.ollama');
   return t('provider.gemini');
 }
 
@@ -185,6 +189,7 @@ export default function GenerationPage() {
           deploymentName: store.azureDeploymentName,
           apiVersion: store.azureApiVersion,
         } : null,
+        ollamaBaseUrl: store.ollamaBaseUrl,
         language: store.language,
         studentName: store.studentName,
         projectType: store.projectType,
@@ -341,6 +346,7 @@ export default function GenerationPage() {
         deploymentName: store2.azureDeploymentName,
         apiVersion: store2.azureApiVersion,
       } : null,
+      ollamaBaseUrl: store2.ollamaBaseUrl,
       language: store2.language,
       studentName: store2.studentName,
       projectType: store2.projectType,

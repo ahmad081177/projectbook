@@ -216,22 +216,33 @@ Linear flow. Back navigation allowed between steps 1–5. Steps 6–8 are forwar
 
 ---
 
-### Screen 2 — Setup (Name + API Key)
+### Screen 2 — Setup (Name + AI Provider)
 
-**Purpose:** Minimum viable identity + Gemini connection. Hard gate.
+**Purpose:** Minimum viable identity + AI connection. Hard gate.
 
 **Fields:**
 | Field | Type | Validation |
 |-------|------|-----------|
 | Student name | Text input | Required, shown in document header only |
-| Gemini API key | Password input (show/hide toggle) | Required |
-| Gemini model | Dropdown | `gemini-1.5-pro` (default), `gemini-1.5-flash`, `gemini-2.0-flash` |
+| AI provider | Toggle button group | Gemini / OpenAI / Azure / **Claude** / **Ollama** |
+
+**Provider-specific fields:**
+
+| Provider | Fields |
+|----------|--------|
+| Gemini | API key (password) + model dropdown (gemini-2.5-flash default) |
+| OpenAI | API key (password) + model dropdown (gpt-4.1-mini default) |
+| Azure OpenAI | Endpoint + API key + deployment name + API version |
+| **Claude** | API key (password) + model dropdown (claude-sonnet-4-20250514 default). Known models: claude-sonnet-4-20250514, claude-3.5-sonnet, claude-3-haiku. Custom model input available. |
+| **Ollama** | Base URL (default: `http://localhost:11434`) + model name (text input, e.g. `llama3`, `mistral`, `gemma2`). No API key required. |
 
 **Behaviour:**
-- "Test Connection" button → calls Gemini with a minimal ping prompt
+- "Test Connection" button → calls selected provider with a minimal ping prompt
   - ✅ Green: "Connection successful — ready to generate!"
-  - ❌ Red: "Cannot connect. Check your API key and try again." — Next button stays disabled
+  - ❌ Red: "Cannot connect. Check your settings and try again." — Next button stays disabled
 - **"Next" is disabled until the connection test passes** — no progression without working AI
+- **Ollama note:** Ollama runs locally — the student must have Ollama installed and running. A helper note below the URL field explains this: *"Ollama must be running on your computer. Download from ollama.com"*
+- **Claude note:** Uses Anthropic's Messages API. API key starts with `sk-ant-`.
 - No other metadata collected at this stage; cover page is the student's job in Word
 
 ---

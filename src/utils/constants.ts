@@ -6,6 +6,8 @@ export const APP_NAME = 'AutoProjectBook';
 export const SESSION_STORAGE_KEY = 'apb-session';
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com';
 export const OPENAI_API_BASE = 'https://api.openai.com';
+export const CLAUDE_API_BASE = 'https://api.anthropic.com';
+export const OLLAMA_DEFAULT_BASE = 'http://localhost:11434';
 
 export const CHAPTER_KEYS = [
   'introduction',

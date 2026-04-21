@@ -5,10 +5,10 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { useTranslation } from '../../i18n';
-import { testAzureConnection, testGeminiConnection, testOpenAIConnection, type AzureConfig } from '../../services/gemini';
+import { testAzureConnection, testClaudeConnection, testGeminiConnection, testOllamaConnection, testOpenAIConnection, type AzureConfig } from '../../services/gemini';
 import { useAppStore } from '../../store';
-import type { AiProvider, GeminiModel, OpenAIModel } from '../../store/types';
-import { KNOWN_GEMINI_MODELS, KNOWN_OPENAI_MODELS } from '../../store/types';
+import type { AiProvider, GeminiModel, OpenAIModel, ClaudeModel, OllamaModel } from '../../store/types';
+import { KNOWN_GEMINI_MODELS, KNOWN_OPENAI_MODELS, KNOWN_CLAUDE_MODELS } from '../../store/types';
 
 const GEMINI_MODEL_OPTIONS = [
   ...KNOWN_GEMINI_MODELS.map((m) => ({ value: m, label: m })),
@@ -17,6 +17,11 @@ const GEMINI_MODEL_OPTIONS = [
 
 const OPENAI_MODEL_OPTIONS = [
   ...KNOWN_OPENAI_MODELS.map((m) => ({ value: m, label: m })),
+  { value: '__custom__', label: 'Custom model...' },
+];
+
+const CLAUDE_MODEL_OPTIONS = [
+  ...KNOWN_CLAUDE_MODELS.map((m) => ({ value: m, label: m })),
   { value: '__custom__', label: 'Custom model...' },
 ];
 
@@ -36,6 +41,10 @@ export default function SetupPage() {
   const storedAzureKey = useAppStore((s) => s.azureApiKey);
   const storedAzureDeployment = useAppStore((s) => s.azureDeploymentName);
   const storedAzureApiVersion = useAppStore((s) => s.azureApiVersion);
+  const storedClaudeKey = useAppStore((s) => s.claudeApiKey);
+  const storedClaudeModel = useAppStore((s) => s.claudeModel);
+  const storedOllamaBaseUrl = useAppStore((s) => s.ollamaBaseUrl);
+  const storedOllamaModel = useAppStore((s) => s.ollamaModel);
 
   const [name, setName] = useState(storedName);
   const [provider, setProvider] = useState<AiProvider>(storedProvider);
@@ -61,12 +70,24 @@ export default function SetupPage() {
   const [azureDeployment, setAzureDeployment] = useState(storedAzureDeployment);
   const [azureApiVersion, setAzureApiVersion] = useState(storedAzureApiVersion || '2024-02-01');
 
+  // Claude state
+  const isKnownClaudeModel = (KNOWN_CLAUDE_MODELS as readonly string[]).includes(storedClaudeModel);
+  const [claudeKey, setClaudeKey] = useState(storedClaudeKey);
+  const [showClaudeKey, setShowClaudeKey] = useState(false);
+  const [claudeModelSelect, setClaudeModelSelect] = useState<string>(isKnownClaudeModel ? storedClaudeModel : '__custom__');
+  const [customClaudeModel, setCustomClaudeModel] = useState<string>(isKnownClaudeModel ? '' : storedClaudeModel);
+
+  // Ollama state
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(storedOllamaBaseUrl || 'http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState(storedOllamaModel || 'llama3');
+
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [connectionError, setConnectionError] = useState('');
   const [nameError, setNameError] = useState('');
 
   const effectiveModel: GeminiModel = modelSelect === '__custom__' ? customModel : modelSelect;
   const effectiveOpenAiModel: OpenAIModel = openAiModelSelect === '__custom__' ? customOpenAiModel : openAiModelSelect;
+  const effectiveClaudeModel: ClaudeModel = claudeModelSelect === '__custom__' ? customClaudeModel : claudeModelSelect;
 
   const canProceed = connectionStatus === 'success' && name.trim().length > 0;
 
@@ -102,7 +123,7 @@ export default function SetupPage() {
         setConnectionStatus('error');
         setConnectionError(result.error ?? t('error.connection'));
       }
-    } else {
+    } else if (provider === 'azure-openai') {
       const cfg: AzureConfig = {
         endpoint: azureEndpoint,
         apiKey: azureKey,
@@ -110,6 +131,23 @@ export default function SetupPage() {
         apiVersion: azureApiVersion,
       };
       const result = await testAzureConnection(cfg);
+      if (result.ok) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+        setConnectionError(result.error ?? t('error.connection'));
+      }
+    } else if (provider === 'claude') {
+      const result = await testClaudeConnection(claudeKey, effectiveClaudeModel);
+      if (result.ok) {
+        setConnectionStatus('success');
+      } else {
+        setConnectionStatus('error');
+        setConnectionError(result.error ?? t('error.connection'));
+      }
+    } else {
+      // ollama
+      const result = await testOllamaConnection(ollamaBaseUrl, ollamaModel);
       if (result.ok) {
         setConnectionStatus('success');
       } else {
@@ -137,7 +175,7 @@ export default function SetupPage() {
         openaiModel: effectiveOpenAiModel,
         completedStep: 1,
       });
-    } else {
+    } else if (provider === 'azure-openai') {
       useAppStore.setState({
         studentName: name.trim(),
         aiProvider: 'azure-openai',
@@ -145,6 +183,22 @@ export default function SetupPage() {
         azureApiKey: azureKey,
         azureDeploymentName: azureDeployment,
         azureApiVersion,
+        completedStep: 1,
+      });
+    } else if (provider === 'claude') {
+      useAppStore.setState({
+        studentName: name.trim(),
+        aiProvider: 'claude',
+        claudeApiKey: claudeKey,
+        claudeModel: effectiveClaudeModel,
+        completedStep: 1,
+      });
+    } else {
+      useAppStore.setState({
+        studentName: name.trim(),
+        aiProvider: 'ollama',
+        ollamaBaseUrl,
+        ollamaModel,
         completedStep: 1,
       });
     }
@@ -172,14 +226,14 @@ export default function SetupPage() {
         {/* Provider toggle */}
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-gray-700">{t('field.provider')}</span>
-          <div className="flex rounded-md border border-gray-300 overflow-hidden">
-            {(['gemini', 'openai', 'azure-openai'] as AiProvider[]).map((p) => (
+          <div className="flex flex-wrap rounded-md border border-gray-300 overflow-hidden">
+            {(['gemini', 'openai', 'azure-openai', 'claude', 'ollama'] as AiProvider[]).map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => { setProvider(p); resetConnection(); }}
                 className={[
-                  'flex-1 py-2 text-sm font-medium transition-colors',
+                  'flex-1 min-w-[80px] py-2 text-xs sm:text-sm font-medium transition-colors',
                   provider === p
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-50',
@@ -189,7 +243,11 @@ export default function SetupPage() {
                   ? t('provider.gemini')
                   : p === 'openai'
                     ? t('provider.openai')
-                    : t('provider.azure')}
+                    : p === 'azure-openai'
+                      ? t('provider.azure')
+                      : p === 'claude'
+                        ? t('provider.claude')
+                        : t('provider.ollama')}
               </button>
             ))}
           </div>
@@ -279,7 +337,7 @@ export default function SetupPage() {
               )}
             </div>
           </>
-        ) : (
+        ) : provider === 'azure-openai' ? (
           <>
             <Input
               label={t('field.azureEndpoint')}
@@ -323,6 +381,68 @@ export default function SetupPage() {
               onChange={(e) => { setAzureApiVersion(e.target.value); resetConnection(); }}
               autoComplete="off"
             />
+          </>
+        ) : provider === 'claude' ? (
+          <>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Input
+                    label={t('field.apiKey')}
+                    type={showClaudeKey ? 'text' : 'password'}
+                    value={claudeKey}
+                    onChange={(e) => { setClaudeKey(e.target.value); resetConnection(); }}
+                    autoComplete="off"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowClaudeKey((v) => !v)}
+                  className="mb-0.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-md"
+                  aria-label={showClaudeKey ? 'Hide key' : 'Show key'}
+                >
+                  {showClaudeKey ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Select
+                label={t('field.model')}
+                options={CLAUDE_MODEL_OPTIONS}
+                value={claudeModelSelect}
+                onChange={(e) => { setClaudeModelSelect(e.target.value); resetConnection(); }}
+              />
+              {claudeModelSelect === '__custom__' && (
+                <Input
+                  label={t('field.customModel')}
+                  placeholder="e.g. claude-sonnet-4-20250514"
+                  value={customClaudeModel}
+                  onChange={(e) => { setCustomClaudeModel(e.target.value); resetConnection(); }}
+                  autoComplete="off"
+                />
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <Input
+              label={t('field.ollamaBaseUrl')}
+              placeholder="http://localhost:11434"
+              value={ollamaBaseUrl}
+              onChange={(e) => { setOllamaBaseUrl(e.target.value); resetConnection(); }}
+              autoComplete="off"
+            />
+
+            <Input
+              label={t('field.ollamaModel')}
+              placeholder="e.g. llama3, mistral, gemma2"
+              value={ollamaModel}
+              onChange={(e) => { setOllamaModel(e.target.value); resetConnection(); }}
+              autoComplete="off"
+            />
+
+            <p className="text-xs text-gray-500">{t('field.ollamaHint')}</p>
           </>
         )}
 

@@ -1,5 +1,5 @@
-import type { AiProvider, GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey, OpenAIModel, AiUsageStats } from '../store/types';
-import { GEMINI_API_BASE, OPENAI_API_BASE } from '../utils/constants';
+import type { AiProvider, GeminiModel, Language, CSharpClass, DatabaseTable, ProjectType, ChapterKey, OpenAIModel, ClaudeModel, OllamaModel, AiUsageStats } from '../store/types';
+import { GEMINI_API_BASE, OPENAI_API_BASE, CLAUDE_API_BASE } from '../utils/constants';
 
 // ─── Provider config ──────────────────────────────────────────────────────
 
@@ -42,6 +42,22 @@ interface OpenAIResponse {
     total_tokens?: number;
   };
   error?: { message?: string };
+}
+
+interface ClaudeResponse {
+  content?: Array<{ type?: string; text?: string }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+  };
+  error?: { type?: string; message?: string };
+}
+
+interface OllamaResponse {
+  response?: string;
+  prompt_eval_count?: number;
+  eval_count?: number;
+  error?: string;
 }
 
 export interface AiTextResult {
@@ -273,6 +289,119 @@ async function callOpenAI(
   throw new Error(lastError);
 }
 
+// ─── Claude (Anthropic) caller ────────────────────────────────────────────
+
+async function callClaude(
+  apiKey: string,
+  model: ClaudeModel,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<AiTextResult> {
+  if (!apiKey.trim()) throw new Error('Claude API key is required');
+  if (!model.trim()) throw new Error('Claude model name is required');
+
+  const url = `${CLAUDE_API_BASE}/v1/messages`;
+  let lastError = '';
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    });
+
+    if (res.ok) {
+      const body = (await res.json()) as ClaudeResponse;
+      const text = body.content?.find((b) => b.type === 'text')?.text ?? '';
+      return {
+        text,
+        usage: buildUsageStats('claude', model, systemPrompt, userPrompt, text, {
+          inputTokens: body.usage?.input_tokens,
+          outputTokens: body.usage?.output_tokens,
+          totalTokens: body.usage ? (body.usage.input_tokens ?? 0) + (body.usage.output_tokens ?? 0) : undefined,
+        }),
+      };
+    }
+
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as ClaudeResponse;
+      if (body.error?.message) errMsg = body.error.message;
+    } catch { /* ignore */ }
+    lastError = errMsg;
+
+    if (res.status !== 429 || attempt === MAX_RETRIES) break;
+    await new Promise((r) => setTimeout(r, RETRY_BASE_DELAY_MS * (attempt + 1)));
+  }
+
+  throw new Error(lastError);
+}
+
+// ─── Ollama (local) caller ────────────────────────────────────────────────
+
+async function callOllama(
+  baseUrl: string,
+  model: OllamaModel,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<AiTextResult> {
+  if (!model.trim()) throw new Error('Ollama model name is required');
+  const base = baseUrl.replace(/\/+$/, '');
+  const url = `${base}/api/generate`;
+
+  let lastError = '';
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        system: systemPrompt,
+        prompt: userPrompt,
+        stream: false,
+        options: { temperature: 0.4, top_p: 0.85 },
+      }),
+    });
+
+    if (res.ok) {
+      const body = (await res.json()) as OllamaResponse;
+      const text = body.response ?? '';
+      return {
+        text,
+        usage: buildUsageStats('ollama', model, systemPrompt, userPrompt, text, {
+          inputTokens: body.prompt_eval_count,
+          outputTokens: body.eval_count,
+          totalTokens: body.prompt_eval_count != null && body.eval_count != null
+            ? body.prompt_eval_count + body.eval_count
+            : undefined,
+        }),
+      };
+    }
+
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as OllamaResponse;
+      if (body.error) errMsg = body.error;
+    } catch { /* ignore */ }
+    lastError = errMsg;
+
+    if (res.status !== 429 || attempt === MAX_RETRIES) break;
+    await new Promise((r) => setTimeout(r, RETRY_BASE_DELAY_MS * (attempt + 1)));
+  }
+
+  throw new Error(lastError);
+}
+
 // ─── Unified AI caller ────────────────────────────────────────────────────
 
 async function callAI(
@@ -282,6 +411,7 @@ async function callAI(
   azureCfg: AzureConfig | null,
   systemPrompt: string,
   userPrompt: string,
+  ollamaBaseUrl?: string,
 ): Promise<AiTextResult> {
   if (provider === 'azure-openai') {
     if (!azureCfg) throw new Error('Azure config missing');
@@ -289,6 +419,12 @@ async function callAI(
   }
   if (provider === 'openai') {
     return callOpenAI(apiKey, model, systemPrompt, userPrompt);
+  }
+  if (provider === 'claude') {
+    return callClaude(apiKey, model, systemPrompt, userPrompt);
+  }
+  if (provider === 'ollama') {
+    return callOllama(ollamaBaseUrl || 'http://localhost:11434', model, systemPrompt, userPrompt);
   }
   return callGemini(apiKey, model, systemPrompt, userPrompt);
 }
@@ -384,6 +520,30 @@ export async function testOpenAIConnection(
   }
 }
 
+export async function testClaudeConnection(
+  apiKey: string,
+  model: ClaudeModel,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await callClaude(apiKey, model, 'You are a helpful assistant.', 'Hi');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Claude connection failed' };
+  }
+}
+
+export async function testOllamaConnection(
+  baseUrl: string,
+  model: OllamaModel,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await callOllama(baseUrl, model, 'You are a helpful assistant.', 'Hi');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Ollama connection failed' };
+  }
+}
+
 // ─── Chapter generators ────────────────────────────────────────────────────
 
 export interface GenerationContext {
@@ -391,6 +551,7 @@ export interface GenerationContext {
   apiKey: string;
   model: GeminiModel;
   azureCfg: AzureConfig | null;
+  ollamaBaseUrl?: string;
   language: Language;
   studentName: string;
   projectType: ProjectType | null;
@@ -611,7 +772,7 @@ export async function generateChapter(
   const userPrompt = ctx.language === 'ar'
     ? `${basePrompt}\n\n⚠️ تعليمات اللغة — إلزامية: اكتب كامل إجابتك باللغة العربية الفصحى فقط. جميع العناوين (## و ###) يجب أن تكون بالعربية حصراً. ممنوع تماماً كتابة أي كلمة أو جملة بالعبرية في النص أو العناوين أو أي مكان آخر.`
     : basePrompt;
-  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt, ctx.ollamaBaseUrl);
 }
 
 // ─── Diagram generators (Mermaid) ─────────────────────────────────────────
@@ -623,7 +784,7 @@ export async function generateUmlDiagram(ctx: GenerationContext): Promise<AiText
     ? 'أنشئ كود Mermaid صحيحاً لمخطط الفصول (classDiagram). أدرج فقط كود Mermaid، بدون شرح.'
     : 'צור קוד Mermaid תקני לדיאגרמת מחלקות (classDiagram). הכנס רק את קוד Mermaid, ללא הסברים.';
   const userPrompt = `${label}\n${classesToContext(ctx.classes)}\n${instruction}`;
-  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt, ctx.ollamaBaseUrl);
 }
 
 // ─── Class descriptions (issue: remove hardcoded fallback) ────────────────
@@ -696,7 +857,7 @@ CLASS ClassName: <תיאור>
 METHOD ClassName.methodName: <תיאור>`;
 
   try {
-    const result = await callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+    const result = await callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt, ctx.ollamaBaseUrl);
     return { descriptions: parseClassDescriptions(result.text), usage: result.usage };
   } catch {
     return { descriptions: {} };
@@ -710,7 +871,7 @@ export async function generateErdDiagram(ctx: GenerationContext): Promise<AiText
     ? 'أنشئ كود Mermaid صحيحاً لمخطط ERD (erDiagram). أدرج فقط كود Mermaid، بدون شرح.'
     : 'צור קוד Mermaid תקני ל-ERD (erDiagram). הכנס רק את קוד Mermaid, ללא הסברים.';
   const userPrompt = `${label}\n${tablesToContext(ctx.tables)}\n\nSTRICT RULES:\n- Use ONLY the table names and column names listed above.\n- If a table shows "[no column info available]", draw that table as an entity with NO attributes.\n- Do NOT invent, guess, or add any column names or relationships that are not explicitly listed above.\n- Do NOT add Id, CreatedAt, UpdatedAt or any other column unless it appears in the list above.\n- Only draw relationships (||--||, ||--|{) if a FK column is explicitly shown above.\n\n${instruction}`;
-  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt);
+  return callAI(ctx.provider, ctx.apiKey, ctx.model, ctx.azureCfg, systemPrompt, userPrompt, ctx.ollamaBaseUrl);
 }
 
 

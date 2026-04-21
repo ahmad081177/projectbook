@@ -25,10 +25,12 @@ const CHAPTER_ORDER: ChapterKey[] = [
 ];
 
 function getProviderCredentials(store: ReturnType<typeof useAppStore.getState>) {
-  return {
-    apiKey: store.aiProvider === 'openai' ? store.openaiApiKey : store.geminiApiKey,
-    model: store.aiProvider === 'openai' ? store.openaiModel : store.geminiModel,
-  };
+  switch (store.aiProvider) {
+    case 'openai': return { apiKey: store.openaiApiKey, model: store.openaiModel };
+    case 'claude': return { apiKey: store.claudeApiKey, model: store.claudeModel };
+    case 'ollama': return { apiKey: '', model: store.ollamaModel };
+    default:       return { apiKey: store.geminiApiKey, model: store.geminiModel };
+  }
 }
 
 function statusToBadge(
@@ -90,6 +92,7 @@ export default function ReviewPage() {
         deploymentName: s.azureDeploymentName,
         apiVersion: s.azureApiVersion,
       } : null,
+      ollamaBaseUrl: s.ollamaBaseUrl,
       language: s.language,
       studentName: s.studentName,
       projectType: s.projectType,

@@ -2,11 +2,13 @@
 
 export type Language = 'he' | 'ar';
 export type ProjectType = 'aspnet' | 'blazor' | 'wpf' | 'winforms' | 'android' | 'other';
-export type AiProvider = 'gemini' | 'openai' | 'azure-openai';
+export type AiProvider = 'gemini' | 'openai' | 'azure-openai' | 'claude' | 'ollama';
 
 /** Well-known Gemini model IDs — typed as string to also allow custom names. */
 export type GeminiModel = string;
 export type OpenAIModel = string;
+export type ClaudeModel = string;
+export type OllamaModel = string;
 
 export interface AiUsageStats {
   inputTokens: number;
@@ -28,6 +30,12 @@ export const KNOWN_OPENAI_MODELS = [
   'gpt-4.1-mini',
   'gpt-4o-mini',
   'gpt-4o',
+] as const;
+
+export const KNOWN_CLAUDE_MODELS = [
+  'claude-sonnet-4-20250514',
+  'claude-3.5-sonnet',
+  'claude-3-haiku',
 ] as const;
 export type ChapterKey =
   | 'introduction'
@@ -161,6 +169,12 @@ export interface OnboardingSlice {
   azureApiKey: string;         // never persisted to storage
   azureDeploymentName: string; // e.g. gpt-4o
   azureApiVersion: string;     // e.g. 2024-02-01
+  // Claude fields
+  claudeApiKey: string;        // never persisted to storage
+  claudeModel: ClaudeModel;
+  // Ollama fields
+  ollamaBaseUrl: string;       // e.g. http://localhost:11434
+  ollamaModel: OllamaModel;
   studentName: string;
   projectType: ProjectType | null;
   completedStep: number; // -1 = wizard not started

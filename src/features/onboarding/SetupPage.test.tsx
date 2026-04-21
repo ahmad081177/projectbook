@@ -13,6 +13,8 @@ vi.mock('react-router', async (importOriginal) => {
 
 const testGeminiConnection = vi.spyOn(geminiService, 'testGeminiConnection');
 const testOpenAIConnection = vi.spyOn(geminiService, 'testOpenAIConnection');
+const testClaudeConnection = vi.spyOn(geminiService, 'testClaudeConnection');
+const testOllamaConnection = vi.spyOn(geminiService, 'testOllamaConnection');
 
 describe('SetupPage', () => {
   beforeEach(() => {
@@ -28,6 +30,8 @@ describe('SetupPage', () => {
     mockNavigate.mockClear();
     testGeminiConnection.mockReset();
     testOpenAIConnection.mockReset();
+    testClaudeConnection.mockReset();
+    testOllamaConnection.mockReset();
   });
 
   it('renders name, API key, and model fields', () => {
@@ -122,6 +126,54 @@ describe('SetupPage', () => {
     fireEvent.click(screen.getByText('הבא'));
     expect(useAppStore.getState().aiProvider).toBe('openai');
     expect(useAppStore.getState().openaiApiKey).toBe('sk-test');
+    expect(useAppStore.getState().completedStep).toBe(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/extract/code');
+  });
+
+  it('supports Claude provider setup and stores its credentials', async () => {
+    testClaudeConnection.mockResolvedValueOnce({ ok: true });
+    render(
+      <MemoryRouter>
+        <SetupPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText('Claude'));
+    fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Dana Cohen' } });
+    fireEvent.change(screen.getByLabelText('מפתח API'), { target: { value: 'sk-ant-test' } });
+    fireEvent.click(screen.getByText('בדוק חיבור'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/החיבור הצליח/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('הבא'));
+    expect(useAppStore.getState().aiProvider).toBe('claude');
+    expect(useAppStore.getState().claudeApiKey).toBe('sk-ant-test');
+    expect(useAppStore.getState().completedStep).toBe(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/extract/code');
+  });
+
+  it('supports Ollama provider setup and stores its credentials', async () => {
+    testOllamaConnection.mockResolvedValueOnce({ ok: true });
+    render(
+      <MemoryRouter>
+        <SetupPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText('Ollama'));
+    fireEvent.change(screen.getByLabelText('שם התלמיד'), { target: { value: 'Yossi Levi' } });
+    fireEvent.click(screen.getByText('בדוק חיבור'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/החיבור הצליח/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('הבא'));
+    expect(useAppStore.getState().aiProvider).toBe('ollama');
+    expect(useAppStore.getState().ollamaBaseUrl).toBe('http://localhost:11434');
+    expect(useAppStore.getState().ollamaModel).toBe('llama3');
     expect(useAppStore.getState().completedStep).toBe(1);
     expect(mockNavigate).toHaveBeenCalledWith('/extract/code');
   });
