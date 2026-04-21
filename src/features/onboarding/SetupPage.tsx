@@ -7,7 +7,7 @@ import Select from '../../components/ui/Select';
 import { useTranslation } from '../../i18n';
 import { testAzureConnection, testClaudeConnection, testGeminiConnection, testOllamaConnection, testOpenAIConnection, type AzureConfig } from '../../services/gemini';
 import { useAppStore } from '../../store';
-import type { AiProvider, GeminiModel, OpenAIModel, ClaudeModel, OllamaModel } from '../../store/types';
+import type { AiProvider, GeminiModel, OpenAIModel, ClaudeModel } from '../../store/types';
 import { KNOWN_GEMINI_MODELS, KNOWN_OPENAI_MODELS, KNOWN_CLAUDE_MODELS } from '../../store/types';
 
 const GEMINI_MODEL_OPTIONS = [
